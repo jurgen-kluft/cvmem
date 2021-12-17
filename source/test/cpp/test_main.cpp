@@ -10,9 +10,7 @@
 
 UNITTEST_SUITE_LIST(xVMemUnitTest);
 
-UNITTEST_SUITE_DECLARE(xVMemUnitTest, doubly_linked_list);
-UNITTEST_SUITE_DECLARE(xVMemUnitTest, binmap);
-UNITTEST_SUITE_DECLARE(xVMemUnitTest, main_allocator);
+UNITTEST_SUITE_DECLARE(xVMemUnitTest, virtual_memory);
 
 namespace xcore
 {
@@ -96,20 +94,11 @@ bool gRunUnitTest(UnitTest::TestReporter& reporter)
 	gTestAllocator = &testAllocator;
 	xcore::context_t::set_system_alloc(&testAllocator);
 
-    int r = 0;
-    if (!xcore::gInitVirtualMemory())
+    int r = UNITTEST_SUITE_RUN(reporter, xVMemUnitTest);
+    if (UnitTest::GetNumAllocations() != 0)
     {
-        reporter.reportFailure(__FILE__, __LINE__, "xunittest", "Virtual memory initialization failed!");
+        reporter.reportFailure(__FILE__, __LINE__, "xunittest", "memory leaks detected!");
         r = -1;
-    }
-    else
-    {
-        int r = UNITTEST_SUITE_RUN(reporter, xVMemUnitTest);
-        if (UnitTest::GetNumAllocations() != 0)
-        {
-            reporter.reportFailure(__FILE__, __LINE__, "xunittest", "memory leaks detected!");
-            r = -1;
-        }
     }
 
 	gTestAllocator->release();

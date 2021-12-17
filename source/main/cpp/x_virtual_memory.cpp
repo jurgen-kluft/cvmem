@@ -28,15 +28,9 @@ namespace xcore
         u32 m_pagesize;
     };
 
-    bool xvmem_os::initialize(u32 pagesize)
-    {
-        m_pagesize = pagesize;
-        return true;
-    }
-
 #if defined TARGET_MAC
 
-#define SYS_PAGE_SIZE 4096
+#define SYS_PAGE_SIZE 65536
 
     bool xvmem_os::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
     {
@@ -60,25 +54,33 @@ namespace xcore
     {
         u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
         mmap(page_address, page_size * page_count, PROT_READ | PROT_WRITE, commit_flags, -1, 0);
-        msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
-        return true;
+        s32 ret =msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
+        return ret == 0;
     }
 
     bool xvmem_os::decommit(void* page_address, u32 page_size, u32 page_count)
     {
         u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
         mmap(page_address, page_size * page_count, PROT_NONE, commit_flags, -1, 0);
-        msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
+        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
+        return ret == 0;
+    }
+
+    bool xvmem_os::initialize(u32 pagesize)
+    {
+        if (pagesize > 0)
+        {
+            m_pagesize = pagesize;
+        }
+        else
+        {
+            m_pagesize = SYS_PAGE_SIZE;
+        }
         return true;
     }
 
     static xvmem_os sVMem;
-
-    bool gInitVirtualMemory()
-    {
-        u32 const page_size = SYS_PAGE_SIZE;
-        return sVMem.initialize(page_size);
-    }
+    xvmem* vmem = &sVMem;
 
 #elif defined TARGET_PC
 
@@ -112,14 +114,23 @@ namespace xcore
         return b;
     }
 
-    static xvmem_os sVMem;
-
-    bool gInitVirtualMemory()
+    bool xvmem_os::initialize(u32 pagesize)
     {
-        SYSTEM_INFO sysinfo;
-        ::GetSystemInfo(&sysinfo);
-        return sVMem.initialize(sysinfo.dwPageSize);
+        if (pagesize > 0)
+        {
+            m_pagesize = pagesize;
+        }
+        else
+        {
+            SYSTEM_INFO sysinfo;
+            ::GetSystemInfo(&sysinfo);
+            m_pagesize = sysinfo.dwPageSize;
+        }
+        return true;
     }
+
+    static xvmem_os sVMem;
+    xvmem* vmem = &sVMem;
 
 #else
 
