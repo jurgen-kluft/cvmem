@@ -11,6 +11,7 @@
 UNITTEST_SUITE_LIST(xVMemUnitTest);
 
 UNITTEST_SUITE_DECLARE(xVMemUnitTest, virtual_memory);
+UNITTEST_SUITE_DECLARE(xVMemUnitTest, virtual_array);
 
 namespace xcore
 {

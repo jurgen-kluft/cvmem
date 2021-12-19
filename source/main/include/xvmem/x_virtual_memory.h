@@ -7,7 +7,7 @@
 
 namespace xcore
 {
-    class xvmem
+    class vmem_t
     {
     public:
         virtual bool initialize(u32 pagesize=0) = 0;
@@ -19,7 +19,7 @@ namespace xcore
         virtual bool decommit(void* address, u32 page_size, u32 page_count) = 0;
     };
 
-    extern xvmem* vmem;
+    extern vmem_t* vmem;
 
 }; // namespace xcore
 

@@ -13,7 +13,7 @@
 
 namespace xcore
 {
-    class xvmem_os : public xvmem
+    class vmem_os_t : public vmem_t
     {
     public:
         virtual bool initialize(u32 pagesize);
@@ -32,8 +32,10 @@ namespace xcore
 
 #define SYS_PAGE_SIZE 65536
 
-    bool xvmem_os::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
+    bool vmem_os_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
     {
+        page_size = m_pagesize;
+        
         baseptr = mmap(NULL, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
         if (baseptr == MAP_FAILED)
             baseptr = NULL;
@@ -42,7 +44,7 @@ namespace xcore
         return baseptr != nullptr;
     }
 
-    bool xvmem_os::release(void* baseptr, u64 address_range)
+    bool vmem_os_t::release(void* baseptr, u64 address_range)
     {
         msync(baseptr, address_range, MS_SYNC);
         s32 ret = munmap(baseptr, address_range);
@@ -50,23 +52,25 @@ namespace xcore
         return ret == 0;
     }
 
-    bool xvmem_os::commit(void* page_address, u32 page_size, u32 page_count)
+    bool vmem_os_t::commit(void* page_address, u32 page_size, u32 page_count)
     {
+        if (page_size == 0) page_size = SYS_PAGE_SIZE;
         u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
         mmap(page_address, page_size * page_count, PROT_READ | PROT_WRITE, commit_flags, -1, 0);
         s32 ret =msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
         return ret == 0;
     }
 
-    bool xvmem_os::decommit(void* page_address, u32 page_size, u32 page_count)
+    bool vmem_os_t::decommit(void* page_address, u32 page_size, u32 page_count)
     {
+        if (page_size == 0) page_size = SYS_PAGE_SIZE;
         u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
         mmap(page_address, page_size * page_count, PROT_NONE, commit_flags, -1, 0);
         s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
         return ret == 0;
     }
 
-    bool xvmem_os::initialize(u32 pagesize)
+    bool vmem_os_t::initialize(u32 pagesize)
     {
         if (pagesize > 0)
         {
@@ -79,12 +83,12 @@ namespace xcore
         return true;
     }
 
-    static xvmem_os sVMem;
-    xvmem* vmem = &sVMem;
+    static vmem_os_t sVMem;
+    vmem_t* vmem = &sVMem;
 
 #elif defined TARGET_PC
 
-    bool xvmem_os::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
+    bool vmem_os_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
     {
         unsigned int allocation_type = MEM_RESERVE | reserve_flags;
         unsigned int protect         = 0;
@@ -93,13 +97,13 @@ namespace xcore
         return baseptr != nullptr;
     }
 
-    bool xvmem_os::release(void* baseptr, u64 address_range)
+    bool vmem_os_t::release(void* baseptr, u64 address_range)
     {
         BOOL b = ::VirtualFree(baseptr, 0, MEM_RELEASE);
         return b;
     }
 
-    bool xvmem_os::commit(void* page_address, u32 page_size, u32 page_count)
+    bool vmem_os_t::commit(void* page_address, u32 page_size, u32 page_count)
     {
         unsigned int allocation_type = MEM_COMMIT;
         unsigned int protect         = PAGE_READWRITE;
@@ -107,14 +111,14 @@ namespace xcore
         return success;
     }
 
-    bool xvmem_os::decommit(void* page_address, u32 page_size, u32 page_count)
+    bool vmem_os_t::decommit(void* page_address, u32 page_size, u32 page_count)
     {
         unsigned int allocation_type = MEM_DECOMMIT;
         BOOL         b               = ::VirtualFree(page_address, page_size * page_count, allocation_type);
         return b;
     }
 
-    bool xvmem_os::initialize(u32 pagesize)
+    bool vmem_os_t::initialize(u32 pagesize)
     {
         if (pagesize > 0)
         {
@@ -129,15 +133,13 @@ namespace xcore
         return true;
     }
 
-    static xvmem_os sVMem;
-    xvmem* vmem = &sVMem;
+    static vmem_os_t sVMem;
+    vmem_t* vmem = &sVMem;
 
 #else
 
 #error Unknown Platform/Compiler configuration for xvmem
 
 #endif
-
-    xvmem* gGetVirtualMemory() { return &sVMem; }
 
 }; // namespace xcore

@@ -12,7 +12,10 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
 {
     UNITTEST_FIXTURE(main)
     {
-        UNITTEST_FIXTURE_SETUP() { vmem->initialize(); }
+        UNITTEST_FIXTURE_SETUP() 
+        { 
+            vmem->initialize(); 
+        }
 
         UNITTEST_FIXTURE_TEARDOWN() {}
 
