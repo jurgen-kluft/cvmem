@@ -6,7 +6,7 @@
 
 #include "xvmem/x_virtual_memory.h"
 
-using namespace xcore;
+using namespace ncore;
 
 UNITTEST_SUITE_BEGIN(virtual_memory)
 {
@@ -40,7 +40,7 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
 
             // Should be able to write to that block of memory now
             // Let's do a memset
-            xmem::memset(baseptr, 0xCDCDCDCD, pagesize * 4);
+            nmem::memset(baseptr, 0xCDCDCDCD, pagesize * 4);
 
             CHECK_TRUE(vmem->decommit(baseptr, pagesize, 4));
             CHECK_TRUE(vmem->release(baseptr, address_range));

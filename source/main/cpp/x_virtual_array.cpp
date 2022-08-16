@@ -4,7 +4,7 @@
 #include "xvmem/x_virtual_memory.h"
 #include "xvmem/x_virtual_array.h"
 
-namespace xcore
+namespace ncore
 {
     /*
         virtual bool reserve(u64 address_range, u32& page_size, u32 attributes, void*& baseptr);
@@ -67,7 +67,7 @@ namespace xcore
             if (page_com > m_page_com && page_com < m_page_max)
             {
                 u32 const page_cnt = page_com - m_page_com;
-                void*     baseptr  = (void*)((xbyte*)m_baseptr + (m_page_com * page_size));
+                void*     baseptr  = (void*)((u8*)m_baseptr + (m_page_com * page_size));
                 vmem->commit(baseptr, page_size, page_cnt);
                 m_page_com = page_com;
             }
@@ -80,11 +80,11 @@ namespace xcore
             if (page_com < m_page_com)
             {
                 u32 const page_cnt = m_page_com - page_com;
-                void*     baseptr  = (void*)((xbyte*)m_baseptr + (page_com * page_size));
+                void*     baseptr  = (void*)((u8*)m_baseptr + (page_com * page_size));
                 vmem->decommit(baseptr, page_size, page_cnt);
                 m_page_com = page_com;
             }
         }
     }
 
-} // namespace xcore
+} // namespace ncore

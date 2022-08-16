@@ -5,7 +5,7 @@
 #pragma once
 #endif
 
-namespace xcore
+namespace ncore
 {
     class vmem_t
     {
@@ -21,6 +21,6 @@ namespace xcore
 
     extern vmem_t* vmem;
 
-}; // namespace xcore
+}; // namespace ncore
 
 #endif /// __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__

@@ -5,7 +5,7 @@
 #pragma once
 #endif
 
-namespace xcore
+namespace ncore
 {
     class virtual_array_t
     {
@@ -18,7 +18,7 @@ namespace xcore
 
         template<typename T>
         inline T* at(s32 i) { return (T*)m_baseptr + (i * m_item_size); }
-        inline xbyte* get(s32 i) { return (xbyte*)m_baseptr + (i * m_item_size); }
+        inline u8* get(s32 i) { return (u8*)m_baseptr + (i * m_item_size); }
         
         inline u32 get_size() const { return m_item_count; }
         void set_size(u32 item_count);
@@ -31,6 +31,6 @@ namespace xcore
         void* m_baseptr;    // 
     };
 
-}; // namespace xcore
+}; // namespace ncore
 
 #endif /// __X_VMEM_VIRTUAL_ARRAY_H__

@@ -11,7 +11,7 @@
 #include "Windows.h"
 #endif
 
-namespace xcore
+namespace ncore
 {
     class vmem_os_t : public vmem_t
     {
@@ -36,9 +36,9 @@ namespace xcore
     {
         page_size = m_pagesize;
         
-        baseptr = mmap(NULL, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
+        baseptr = mmap(nullptr, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
         if (baseptr == MAP_FAILED)
-            baseptr = NULL;
+            baseptr = nullptr;
 
         msync(baseptr, address_range, (MS_SYNC | MS_INVALIDATE));
         return baseptr != nullptr;
@@ -92,7 +92,7 @@ namespace xcore
     {
         unsigned int allocation_type = MEM_RESERVE | reserve_flags;
         unsigned int protect         = 0;
-        baseptr                      = ::VirtualAlloc(NULL, (SIZE_T)address_range, allocation_type, protect);
+        baseptr                      = ::VirtualAlloc(nullptr, (SIZE_T)address_range, allocation_type, protect);
         page_size                    = m_pagesize;
         return baseptr != nullptr;
     }
@@ -107,7 +107,7 @@ namespace xcore
     {
         unsigned int allocation_type = MEM_COMMIT;
         unsigned int protect         = PAGE_READWRITE;
-        BOOL         success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != NULL;
+        BOOL         success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != nullptr;
         return success;
     }
 
@@ -142,4 +142,4 @@ namespace xcore
 
 #endif
 
-}; // namespace xcore
+}; // namespace ncore

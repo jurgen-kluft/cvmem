@@ -7,7 +7,7 @@
 #include "xvmem/x_virtual_memory.h"
 #include "xvmem/x_virtual_array.h"
 
-using namespace xcore;
+using namespace ncore;
 
 UNITTEST_SUITE_BEGIN(virtual_array)
 {
@@ -42,7 +42,7 @@ UNITTEST_SUITE_BEGIN(virtual_array)
 
             // Should be able to write to that block of memory now
             // Let's do a memset
-            xmem::memset(array.get(0), 0xCDCDCDCD, sizeof(entity_t) * 4096);
+            nmem::memset(array.get(0), 0xCDCDCDCD, sizeof(entity_t) * 4096);
             entity_t* e = array.at<entity_t>(0);
 
             array.exit();
