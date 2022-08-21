@@ -2,7 +2,7 @@
 #include "cbase/c_integer.h"
 #include "cbase/c_memory.h"
 
-#include "xunittest/xunittest.h"
+#include "cunittest/xunittest.h"
 
 #include "cvmem/c_virtual_memory.h"
 

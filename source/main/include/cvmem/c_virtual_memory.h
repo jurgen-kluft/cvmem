@@ -1,5 +1,5 @@
-#ifndef __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
-#define __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
+#ifndef __C_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
+#define __C_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
 #include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #pragma once
@@ -23,4 +23,4 @@ namespace ncore
 
 }; // namespace ncore
 
-#endif /// __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
+#endif /// __C_VMEM_VIRTUAL_MEMORY_INTERFACE_H__

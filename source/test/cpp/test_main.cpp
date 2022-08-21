@@ -5,8 +5,8 @@
 
 #include "cvmem/c_virtual_memory.h"
 
-#include "xunittest/xunittest.h"
-#include "xunittest/private/ut_ReportAssert.h"
+#include "cunittest/xunittest.h"
+#include "cunittest/private/ut_ReportAssert.h"
 
 UNITTEST_SUITE_LIST(xVMemUnitTest);
 
