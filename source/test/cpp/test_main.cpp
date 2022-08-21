@@ -1,9 +1,9 @@
-#include "xbase/x_base.h"
-#include "xbase/x_allocator.h"
-#include "xbase/x_console.h"
-#include "xbase/x_context.h"
+#include "cbase/c_base.h"
+#include "cbase/c_allocator.h"
+#include "cbase/c_console.h"
+#include "cbase/c_context.h"
 
-#include "xvmem/x_virtual_memory.h"
+#include "cvmem/c_virtual_memory.h"
 
 #include "xunittest/xunittest.h"
 #include "xunittest/private/ut_ReportAssert.h"
@@ -51,8 +51,6 @@ namespace ncore
         {
         }
 
-        virtual const char* name() const { return "xbase unittest test heap allocator"; }
-
         virtual void* v_allocate(u32 size, u32 alignment)
         {
             UnitTest::IncNumAllocations();
@@ -77,7 +75,7 @@ ncore::UnitTestAssertHandler gAssertHandler;
 
 bool gRunUnitTest(UnitTest::TestReporter& reporter)
 {
-	xbase::init();
+	cbase::init();
 
 #ifdef TARGET_DEBUG
 	ncore::context_t::set_assert_handler(&gAssertHandler);
@@ -107,6 +105,6 @@ bool gRunUnitTest(UnitTest::TestReporter& reporter)
 	UnitTest::SetAllocator(nullptr);
 	ncore::context_t::set_system_alloc(systemAllocator);
 
-	xbase::exit();
+	cbase::exit();
 	return r==0;
 }

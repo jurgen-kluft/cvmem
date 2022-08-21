@@ -1,8 +1,8 @@
-#include "xbase/x_target.h"
-#include "xbase/x_debug.h"
-#include "xbase/x_allocator.h"
+#include "cbase/c_target.h"
+#include "cbase/c_debug.h"
+#include "cbase/c_allocator.h"
 
-#include "xvmem/x_virtual_memory.h"
+#include "cvmem/c_virtual_memory.h"
 
 #if defined TARGET_MAC
 #include <sys/mman.h>

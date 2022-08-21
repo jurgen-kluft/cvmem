@@ -1,8 +1,8 @@
-#include "xbase/x_target.h"
-#include "xbase/x_debug.h"
+#include "cbase/c_target.h"
+#include "cbase/c_debug.h"
 
-#include "xvmem/x_virtual_memory.h"
-#include "xvmem/x_virtual_array.h"
+#include "cvmem/c_virtual_memory.h"
+#include "cvmem/c_virtual_array.h"
 
 namespace ncore
 {

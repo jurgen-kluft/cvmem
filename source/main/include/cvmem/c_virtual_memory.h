@@ -1,6 +1,6 @@
 #ifndef __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
 #define __X_VMEM_VIRTUAL_MEMORY_INTERFACE_H__
-#include "xbase/x_target.h"
+#include "cbase/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #pragma once
 #endif

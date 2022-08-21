@@ -1,11 +1,11 @@
-#include "xbase/x_allocator.h"
-#include "xbase/x_integer.h"
-#include "xbase/x_memory.h"
+#include "cbase/c_allocator.h"
+#include "cbase/c_integer.h"
+#include "cbase/c_memory.h"
 
 #include "xunittest/xunittest.h"
 
-#include "xvmem/x_virtual_memory.h"
-#include "xvmem/x_virtual_array.h"
+#include "cvmem/c_virtual_memory.h"
+#include "cvmem/c_virtual_array.h"
 
 using namespace ncore;
 
