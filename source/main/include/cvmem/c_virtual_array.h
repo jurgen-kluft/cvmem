@@ -1,6 +1,6 @@
 #ifndef __C_VMEM_VIRTUAL_ARRAY_H__
 #define __C_VMEM_VIRTUAL_ARRAY_H__
-#include "cbase/c_target.h"
+#include "ccore/c_target.h"
 #ifdef USE_PRAGMA_ONCE
 #pragma once
 #endif
