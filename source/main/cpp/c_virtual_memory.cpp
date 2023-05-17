@@ -1,6 +1,6 @@
 #include "ccore/c_target.h"
 #include "ccore/c_debug.h"
-#include "cbase/c_allocator.h"
+#include "ccore/c_allocator.h"
 
 #include "cvmem/c_virtual_memory.h"
 
