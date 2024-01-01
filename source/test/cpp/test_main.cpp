@@ -3,15 +3,9 @@
 #include "cbase/c_console.h"
 #include "cbase/c_context.h"
 
-#include "cvmem/c_virtual_memory.h"
+#include "cunittest/cunittest.h"
 
-#include "cunittest/xunittest.h"
-#include "cunittest/private/ut_ReportAssert.h"
-
-UNITTEST_SUITE_LIST(xVMemUnitTest);
-
-UNITTEST_SUITE_DECLARE(xVMemUnitTest, virtual_memory);
-UNITTEST_SUITE_DECLARE(xVMemUnitTest, virtual_array);
+UNITTEST_SUITE_LIST
 
 namespace ncore
 {
@@ -23,7 +17,7 @@ namespace ncore
 
         virtual bool handle_assert(u32& flags, const char* fileName, s32 lineNumber, const char* exprString, const char* messageString)
         {
-            UnitTest::reportAssert(exprString, fileName, lineNumber);
+            UnitTest::ReportAssert(exprString, fileName, lineNumber);
             NumberOfAsserts++;
             return false;
         }
@@ -31,80 +25,44 @@ namespace ncore
         ncore::s32 NumberOfAsserts;
     };
 
-    class UnitTestAllocator : public UnitTest::Allocator
-    {
-        ncore::alloc_t* mAllocator;
-
-    public:
-        UnitTestAllocator(ncore::alloc_t* allocator) { mAllocator = allocator; }
-        virtual void*   Allocate(uint_t size) { return mAllocator->allocate((u32)size, sizeof(void*)); }
-        virtual size_t  Deallocate(void* ptr) { return mAllocator->deallocate(ptr); }
-    };
-
     class TestAllocator : public alloc_t
     {
-        alloc_t* mAllocator;
+        UnitTest::TestAllocator* mAllocator;
 
     public:
-        TestAllocator(alloc_t* allocator)
+        TestAllocator(UnitTest::TestAllocator* allocator)
             : mAllocator(allocator)
         {
         }
 
-        virtual void* v_allocate(u32 size, u32 alignment)
-        {
-            UnitTest::IncNumAllocations();
-            return mAllocator->allocate(size, alignment);
-        }
-
-        virtual u32 v_deallocate(void* mem)
-        {
-            UnitTest::DecNumAllocations();
-            return mAllocator->deallocate(mem);
-        }
-
-        virtual void v_release()
-        {
-            mAllocator = nullptr;
-        }
+        virtual void* v_allocate(u32 size, u32 alignment) { return mAllocator->Allocate(size, alignment); }
+        virtual u32   v_deallocate(void* mem) { return mAllocator->Deallocate(mem); }
+        virtual void  v_release() {}
     };
 } // namespace ncore
 
-ncore::alloc_t*               gTestAllocator = nullptr;
-ncore::UnitTestAssertHandler gAssertHandler;
-
-bool gRunUnitTest(UnitTest::TestReporter& reporter)
+bool gRunUnitTest(UnitTest::TestReporter& reporter, UnitTest::TestContext& context)
 {
-	cbase::init();
+    cbase::init();
 
 #ifdef TARGET_DEBUG
-	ncore::context_t::set_assert_handler(&gAssertHandler);
+    ncore::UnitTestAssertHandler assertHandler;
+    ncore::context_t::set_assert_handler(&assertHandler);
+    ncore::gSetAssertHandler(&assertHandler);
 #endif
-	ncore::console->write("Configuration: ");
-	ncore::console->setColor(ncore::console_t::YELLOW);
-	ncore::console->writeLine(TARGET_FULL_DESCR_STR);
-	ncore::console->setColor(ncore::console_t::NORMAL);
+    ncore::console->write("Configuration: ");
+    ncore::console->setColor(ncore::console_t::YELLOW);
+    ncore::console->writeLine(TARGET_FULL_DESCR_STR);
+    ncore::console->setColor(ncore::console_t::NORMAL);
 
-	ncore::alloc_t* systemAllocator = ncore::context_t::system_alloc();
-	ncore::UnitTestAllocator unittestAllocator( systemAllocator );
-	UnitTest::SetAllocator(&unittestAllocator);
+    ncore::TestAllocator testAllocator(context.mAllocator);
+    ncore::alloc_t*      systemAllocator = ncore::context_t::system_alloc();
+    ncore::context_t::set_system_alloc(&testAllocator);
 
-	ncore::TestAllocator testAllocator(systemAllocator);
-	gTestAllocator = &testAllocator;
-	ncore::context_t::set_system_alloc(&testAllocator);
+    int r = UNITTEST_SUITE_RUN(context, reporter, cUnitTest);
 
-    int r = UNITTEST_SUITE_RUN(reporter, xVMemUnitTest);
-    if (UnitTest::GetNumAllocations() != 0)
-    {
-        reporter.reportFailure(__FILE__, __LINE__, "xunittest", "memory leaks detected!");
-        r = -1;
-    }
+    ncore::context_t::set_system_alloc(systemAllocator);
 
-	gTestAllocator->release();
-
-	UnitTest::SetAllocator(nullptr);
-	ncore::context_t::set_system_alloc(systemAllocator);
-
-	cbase::exit();
-	return r==0;
+    cbase::exit();
+    return r == 0;
 }

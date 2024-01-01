@@ -1,8 +1,8 @@
-#include "cbase/c_allocator.h"
+#include "ccore/c_allocator.h"
 #include "cbase/c_integer.h"
 #include "cbase/c_memory.h"
 
-#include "cunittest/xunittest.h"
+#include "cunittest/cunittest.h"
 
 #include "cvmem/c_virtual_memory.h"
 
@@ -21,7 +21,7 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
 
         UNITTEST_TEST(reserve_release)
         {
-            u64   address_range = 4 * xGB;
+            u64   address_range = 4 * cGB;
             u32   pagesize;
             void* baseptr;
             CHECK_TRUE(vmem->reserve(address_range, pagesize, 0, baseptr));
@@ -32,7 +32,7 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
         // virtual bool decommit(void* address, u32 page_size, u32 page_count) = 0;
         UNITTEST_TEST(commit_decommit)
         {
-            u64   address_range = 4 * xGB;
+            u64   address_range = 4 * cGB;
             u32   pagesize;
             void* baseptr;
             CHECK_TRUE(vmem->reserve(address_range, pagesize, 0, baseptr));
