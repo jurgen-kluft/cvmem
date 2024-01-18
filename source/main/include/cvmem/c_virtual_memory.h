@@ -33,6 +33,10 @@ namespace ncore
         const VMemResult Success = 1; // true
     }                                 // namespace nVMemResult
 
+    // This will return the last message after a function fails (VMemResult_Error).
+    const char* vmem_get_error_message(void);
+
+
     typedef u8 VMemProtect;
     namespace nVMemProtect
     {
@@ -62,6 +66,34 @@ namespace ncore
     // Reserve (allocate but don't commit) a block of virtual address-space of size `num_bytes`.
     // @returns 0 on error, start address of the allocated memory block on success.
     void* vmem_alloc_protect(VMemSize num_bytes, VMemProtect protect);
+
+    // Reserves (allocates but doesn't commit) a block of virtual address-space of size `num_bytes`, in ReadWrite protection
+    // mode. The memory is zeroed. Dealloc with `vmem_dealloc`. Note: you must commit the memory before using it.
+    // To maximize efficiency, try to always use a multiple of allocation granularity (see
+    // `vmem_get_allocation_granularity`) for size of allocations.
+    // @param num_bytes: total size of the memory block.
+    // @returns 0 on error, start address of the allocated memory block on success.
+    inline void* vmem_alloc(const VMemSize num_bytes) { return vmem_alloc_protect(num_bytes, nVMemProtect::ReadWrite); }
+
+    // Allocates memory and commits all of it.
+    inline void* vmem_alloc_commited(const VMemSize num_bytes)
+    {
+        void* ptr = vmem_alloc(num_bytes);
+        vmem_commit_protect(ptr, num_bytes, nVMemProtect::ReadWrite);
+        return ptr;
+    }
+
+    // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
+    // memory. The page protection mode will be changed to ReadWrite. Use `vmem_commit_protect` to specify a different mode.
+    // Decommit with `vmem_decommit`.
+    // @param ptr: pointer to the pointer returned by `vmem_alloc` or shifted by N.
+    // @param num_bytes: number of bytes to commit.
+    inline VMemResult vmem_commit(void* ptr, const VMemSize num_bytes) { return vmem_commit_protect(ptr, num_bytes, nVMemProtect::ReadWrite); }
+
+    // Commit a specific number of bytes from the region. This can be used for a custom arena allocator.
+    // If `commited < prev_commited`, this will shrink the usable range.
+    // If `commited > prev_commited`, this will expand the usable range.
+    VMemResult vmem_partially_commit_region(void* ptr, VMemSize num_bytes, VMemSize prev_commited, VMemSize commited);
 
     // Dealloc (release, free) a block of virtual memory.
     // @param alloc_ptr: a pointer to the start of the memory block. Must be the result of `vmem_alloc`.
@@ -113,32 +145,6 @@ namespace ncore
     // If you try to unlock pages which aren't locked, this will fail.
     VMemResult vmem_unlock(void* ptr, VMemSize num_bytes);
 
-    // Reserves (allocates but doesn't commit) a block of virtual address-space of size `num_bytes`, in ReadWrite protection
-    // mode. The memory is zeroed. Dealloc with `vmem_dealloc`. Note: you must commit the memory before using it.
-    // To maximize efficiency, try to always use a multiple of allocation granularity (see
-    // `vmem_get_allocation_granularity`) for size of allocations.
-    // @param num_bytes: total size of the memory block.
-    // @returns 0 on error, start address of the allocated memory block on success.
-    static VMEM_INLINE void* vmem_alloc(const VMemSize num_bytes) { return vmem_alloc_protect(num_bytes, nVMemProtect::ReadWrite); }
-
-    // Allocates memory and commits all of it.
-    static VMEM_INLINE void* vmem_alloc_commited(const VMemSize num_bytes)
-    {
-        void* ptr = vmem_alloc(num_bytes);
-        vmem_commit_protect(ptr, num_bytes, nVMemProtect::ReadWrite);
-        return ptr;
-    }
-
-    // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
-    // memory. The page protection mode will be changed to ReadWrite. Use `vmem_commit_protect` to specify a different mode.
-    // Decommit with `vmem_decommit`.
-    // @param ptr: pointer to the pointer returned by `vmem_alloc` or shifted by N.
-    // @param num_bytes: number of bytes to commit.
-    static VMEM_INLINE VMemResult vmem_commit(void* ptr, const VMemSize num_bytes) { return vmem_commit_protect(ptr, num_bytes, nVMemProtect::ReadWrite); }
-
-    // This will return the last message after a function fails (VMemResult_Error).
-    const char* vmem_get_error_message(void);
-
     // Returns a static string for the protection mode.
     // e.g. nVMemProtect::ReadWrite will return "ReadWrite".
     // Never fails - unknown values return "<Unknown>", never null pointer.
@@ -158,23 +164,14 @@ namespace ncore
     VMemResult vmem_is_aligned(const ptr_t address, const s32 align);
 
     // Faster version of `vmem_align_forward`, because it doesn't do any error checking and can be inlined.
-    static inline ptr_t vmem_align_forward_fast(const ptr_t address, const s32 align)
-    {
-        const ptr_t mask = (ptr_t)(align - 1);
-        return (address + mask) & ~mask;
-    }
+    inline ptr_t vmem_align_forward_fast(const ptr_t address, const s32 align) { return (address + (ptr_t)(align - 1)) & ~(ptr_t)(align - 1); }
 
     // Faster version of `vmem_align_backward`, because it doesn't do any error checking and can be inlined.
-    static inline ptr_t vmem_align_backward_fast(const ptr_t address, const s32 align) { return address & ~(align - 1); }
+    inline ptr_t vmem_align_backward_fast(const ptr_t address, const s32 align) { return address & ~(align - 1); }
 
     // Faster version of `vmem_is_aligned`, because it doesn't do any error checking and can be inlined.
     // The alignment must be a power of 2.
-    static inline VMemResult vmem_is_aligned_fast(const ptr_t address, const s32 align) { return (address & (align - 1)) == 0; }
-
-    // Commit a specific number of bytes from the region. This can be used for a custom arena allocator.
-    // If `commited < prev_commited`, this will shrink the usable range.
-    // If `commited > prev_commited`, this will expand the usable range.
-    VMemResult vmem_partially_commit_region(void* ptr, VMemSize num_bytes, VMemSize prev_commited, VMemSize commited);
+    inline VMemResult vmem_is_aligned_fast(const ptr_t address, const s32 align) { return (address & (align - 1)) == 0; }
 
 }; // namespace ncore
 

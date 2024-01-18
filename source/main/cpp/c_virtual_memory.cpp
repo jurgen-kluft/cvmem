@@ -160,6 +160,19 @@ namespace ncore
 #    define VMEM_ON_ERROR(opt_string) ASSERT(0 && (opt_string))
 #endif
 
+
+    static const s32 AlignmentCannotBeZero                   = 1;
+    static const s32 AlignmentHasToBePowerOf2                = 2;
+    static const s32 CannotAllocateMemoryBlockWithSize0Bytes = 3;
+    static const s32 CannotDeallocAMemoryBlockOfSize0        = 4;
+    static const s32 FailedToFormatWin32Error                = 5;
+    static const s32 InvalidProtectMode                      = 6;
+    static const s32 OutBufferPtrCannotBeNull                = 7;
+    static const s32 OutBufferSizeCannotBe0                  = 8;
+    static const s32 PtrCannotBeNull                         = 9;
+    static const s32 SizeCannotBe0                           = 10;
+
+
 #if !defined(VMEM_NO_ERROR_MESSAGES)
     static s32 vmem__g_error = 0;
 
@@ -174,9 +187,9 @@ namespace ncore
         return "<Unknown>";
     }
 #else
-#    define vmem__write_error(message) // Ignore
+#    define vmem__write_error(error) // Ignore
 
-    const char* vmem_get_error(void) { return "<Error messages disabled>"; }
+    const char* vmem_get_error_message(void) { return "<Error messages disabled>"; }
 #endif
 
     // Cached global page size.
@@ -192,9 +205,6 @@ namespace ncore
 
     VMemSize vmem_get_page_size(void) { return vmem__g_page_size; }
     VMemSize vmem_get_allocation_granularity(void) { return vmem__g_allocation_granularity; }
-
-    static const s32 AlignmentCannotBeZero    = 1;
-    static const s32 AlignmentHasToBePowerOf2 = 2;
 
     ptr_t vmem_align_forward(const ptr_t address, const int align)
     {
@@ -249,8 +259,8 @@ namespace ncore
             case nVMemProtect::ExecuteRead: return PAGE_EXECUTE_READ;
             case nVMemProtect::ExecuteReadWrite: return PAGE_EXECUTE_READWRITE;
         }
-        vmem__write_error_message("InvalidProtectMode.");
-        return VMemResult_Error;
+        vmem__write_error(InvalidProtectMode);
+        return nVMemResult::Error;
     }
 
     static VMemProtect vmem__protect_from_win32(const DWORD protect)
@@ -264,19 +274,22 @@ namespace ncore
             case PAGE_EXECUTE_READ: return nVMemProtect::ExecuteRead;
             case PAGE_EXECUTE_READWRITE: return nVMemProtect::ExecuteReadWrite;
         }
-        vmem__write_error_message("InvalidProtectMode.");
-        return VMemProtect_Invalid;
+        vmem__write_error(InvalidProtectMode);
+        return nVMemProtect::Invalid;
     }
 
 #    if !defined(VMEM_NO_ERROR_MESSAGES)
     static void vmem__write_win32_error_message(void)
     {
-        const DWORD result = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), vmem__g_error_message, sizeof(vmem__g_error_message), NULL);
+        const char* error_msg = vmem_get_error_message();
+        const s32 error_msg_len = strlen(error_msg);
+
+        const DWORD result = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, GetLastError(), MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)error_msg, error_msg_len, NULL);
 
         if (result == 0)
         {
-            vmem__write_error_message("<FailedtoformatWin32Error>");
-       }
+            vmem__write_error(FailedToFormatWin32Error);
+        }
         else
         {
             // Rewrite the last \n to zero
@@ -287,7 +300,7 @@ namespace ncore
 
     void* vmem_alloc_protect(const VMemSize num_bytes, const VMemProtect protect)
     {
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("CannotAllocateMemoryBlockWithSize0Bytes."));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(CannotAllocateMemoryBlockWithSize0Bytes));
 
         const DWORD protect_win32 = vmem__win32_protect(protect);
         if (protect_win32)
@@ -303,43 +316,43 @@ namespace ncore
 
     VMemResult vmem_dealloc(void* ptr, const VMemSize num_allocated_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error_message("CannotDeallocAMemoryBlockOfSize0(num_allocated_bytesIs0)."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error(CannotDeallocAMemoryBlockOfSize0));
 
         const BOOL result = VirtualFree(ptr, 0, MEM_RELEASE);
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemResult vmem_commit_protect(void* ptr, const VMemSize num_bytes, const VMemProtect protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("SizeCannotBe0."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
 
         const LPVOID result = VirtualAlloc(ptr, num_bytes, MEM_COMMIT, vmem__win32_protect(protect));
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemResult vmem_decommit(void* ptr, const VMemSize num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("SizeCannotBe0."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
 
         const BOOL result = VirtualFree(ptr, num_bytes, MEM_DECOMMIT);
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemResult vmem_protect(void* ptr, const VMemSize num_bytes, const VMemProtect protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("SizeCannotBe0."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
 
         DWORD      old_protect = 0;
         const BOOL result      = VirtualProtect(ptr, num_bytes, vmem__win32_protect(protect), &old_protect);
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemSize vmem_query_page_size(void)
@@ -370,31 +383,31 @@ namespace ncore
 
     VMemResult vmem_lock(void* ptr, const VMemSize num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("SizeCannotBe0."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
 
         const BOOL result = VirtualLock(ptr, num_bytes);
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemResult vmem_unlock(void* ptr, const VMemSize num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
         if (num_bytes == 0)
             return 0;
 
         const BOOL result = VirtualUnlock(ptr, num_bytes);
         VMEM_ERROR_IF(result == 0, vmem__write_win32_error_message());
-        return VMemResult_Success;
+        return nVMemResult::Success;
     }
 
     VMemSize vmem_query_range_info(void* ptr, const VMemSize num_bytes, VMemRangeInfo* out_buf, const VMemSize buf_max_items)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error_message("PtrCannotBeNull."));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error_message("SizeCannotBe0."));
-        VMEM_ERROR_IF(out_buf == 0, vmem__write_error_message("OutBufferPtrCannotBeNull."));
-        VMEM_ERROR_IF(buf_max_items == 0, vmem__write_error_message("OutBufferSizeCannotBe0."));
+        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
+        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        VMEM_ERROR_IF(out_buf == 0, vmem__write_error(OutBufferPtrCannotBeNull));
+        VMEM_ERROR_IF(buf_max_items == 0, vmem__write_error(OutBufferSizeCannotBe0));
 
         size_t item_index = 0;
         for (size_t i = 0; i < num_bytes && item_index < buf_max_items;)
