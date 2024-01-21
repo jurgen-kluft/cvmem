@@ -36,7 +36,6 @@ namespace ncore
     // This will return the last message after a function fails (VMemResult_Error).
     const char* vmem_get_error_message(void);
 
-
     typedef u8 VMemProtect;
     namespace nVMemProtect
     {
