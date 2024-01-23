@@ -101,8 +101,8 @@ namespace ncore
 
     bool vmem_os_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
     {
-        unsigned s32 allocation_type = MEM_RESERVE | reserve_flags;
-        unsigned s32 protect         = 0;
+        u32 allocation_type = MEM_RESERVE | reserve_flags;
+        u32 protect         = 0;
         baseptr                      = ::VirtualAlloc(nullptr, (SIZE_T)address_range, allocation_type, protect);
         page_size                    = m_pagesize;
         return baseptr != nullptr;
@@ -116,15 +116,15 @@ namespace ncore
 
     bool vmem_os_t::commit(void* page_address, u32 page_size, u32 page_count)
     {
-        unsigned s32 allocation_type = MEM_COMMIT;
-        unsigned s32 protect         = PAGE_READWRITE;
+        u32 allocation_type = MEM_COMMIT;
+        u32 protect         = PAGE_READWRITE;
         BOOL         success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != nullptr;
         return success;
     }
 
     bool vmem_os_t::decommit(void* page_address, u32 page_size, u32 page_count)
     {
-        unsigned s32 allocation_type = MEM_DECOMMIT;
+        u32 allocation_type = MEM_DECOMMIT;
         BOOL         b               = ::VirtualFree(page_address, page_size * page_count, allocation_type);
         return b;
     }
@@ -182,6 +182,9 @@ namespace ncore
     static const s32 VirtualAllocFailed                      = 11;
     static const s32 VirtualFreeFailed                       = 12;
     static const s32 VirtualProtectFailed                    = 13;
+    static const s32 VirtualAllocReturnedNull                = 14;
+    static const s32 VirtualLockFailed                       = 15;
+    static const s32 VirtualUnlockFailed                     = 16;
 
 #if !defined(VMEM_NO_ERROR_MESSAGES)
     static s32 vmem__g_error = 0;
@@ -377,7 +380,7 @@ namespace ncore
         VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
 
         const BOOL result = VirtualLock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == 0, vmem__write_error_message());
+        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualLockFailed));
         return nVMemResult::Success;
     }
 
@@ -388,7 +391,7 @@ namespace ncore
             return 0;
 
         const BOOL result = VirtualUnlock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == 0, vmem__write_error_message());
+        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualUnlockFailed));
         return nVMemResult::Success;
     }
 
