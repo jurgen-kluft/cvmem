@@ -74,6 +74,12 @@ namespace ncore
     // @returns 0 on error, start address of the allocated memory block on success.
     inline void* vmem_alloc(const VMemSize num_bytes) { return vmem_alloc_protect(num_bytes, nVMemProtect::ReadWrite); }
 
+    // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
+    // memory.
+    // Decommit with `vmem_decommit`.
+    // @param ptr: pointer to the pointer returned by `vmem_alloc` or shifted by [0...num_bytes].
+    VMemResult vmem_commit_protect(void* ptr, VMemSize num_bytes, VMemProtect protect);
+
     // Allocates memory and commits all of it.
     inline void* vmem_alloc_commited(const VMemSize num_bytes)
     {
@@ -99,12 +105,6 @@ namespace ncore
     // @param num_allocated_bytes: *must* be the value returned by `vmem_alloc`.
     //  It isn't used on windows, but it's required on unix platforms.
     VMemResult vmem_dealloc(void* alloc_ptr, VMemSize num_allocated_bytes);
-
-    // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
-    // memory.
-    // Decommit with `vmem_decommit`.
-    // @param ptr: pointer to the pointer returned by `vmem_alloc` or shifted by [0...num_bytes].
-    VMemResult vmem_commit_protect(void* ptr, VMemSize num_bytes, VMemProtect protect);
 
     // Decommits the memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be unmapped from
     // physical memory.
