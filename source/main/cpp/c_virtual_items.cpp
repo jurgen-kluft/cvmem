@@ -33,7 +33,7 @@ namespace ncore
     {
         m_baseptr                       = nullptr;
         u64 const maximum_address_range = maximum_item_count * item_size;
-        if (!vmem->reserve(maximum_address_range, m_page_size, 0, m_baseptr))
+        if (!vmem_t::reserve(maximum_address_range, m_page_size, 0, m_baseptr))
             return false;
 
         m_item_cap   = 0;
@@ -49,7 +49,7 @@ namespace ncore
 
         if (m_page_com > 0)
         {
-            if (!vmem->commit(m_baseptr, m_page_size, m_page_com))
+            if (!vmem_t::commit(m_baseptr, m_page_size, m_page_com))
                 return false;
 
             m_item_cap = (m_page_com * m_page_size) / m_item_size;
@@ -60,7 +60,7 @@ namespace ncore
 
     bool virtual_items_t::exit()
     {
-        if (!vmem->release(m_baseptr, m_page_max * m_page_size))
+        if (!vmem_t::release(m_baseptr, m_page_max * m_page_size))
             return false;
         return true;
     }
@@ -75,7 +75,7 @@ namespace ncore
             {
                 u32 const page_cnt = page_com - m_page_com;
                 void*     baseptr  = (void*)((u8*)m_baseptr + (m_page_com * m_page_size));
-                vmem->commit(baseptr, m_page_size, page_cnt);
+                vmem_t::commit(baseptr, m_page_size, page_cnt);
                 m_page_com = page_com;
                 m_item_cap = (m_page_com * m_page_size) / m_item_size;
             }
@@ -88,7 +88,7 @@ namespace ncore
             {
                 u32 const page_cnt = m_page_com - page_com;
                 void*     baseptr  = (void*)((u8*)m_baseptr + (page_com * m_page_size));
-                vmem->decommit(baseptr, m_page_size, page_cnt);
+                vmem_t::decommit(baseptr, m_page_size, page_cnt);
                 m_page_com = page_com;
                 m_item_cap = (m_page_com * m_page_size) / m_item_size;
             }
