@@ -103,8 +103,8 @@ namespace ncore
     {
         u32 allocation_type = MEM_RESERVE | reserve_flags;
         u32 protect         = 0;
-        baseptr                      = ::VirtualAlloc(nullptr, (SIZE_T)address_range, allocation_type, protect);
-        page_size                    = m_pagesize;
+        baseptr             = ::VirtualAlloc(nullptr, (SIZE_T)address_range, allocation_type, protect);
+        page_size           = m_pagesize;
         return baseptr != nullptr;
     }
 
@@ -116,16 +116,16 @@ namespace ncore
 
     bool vmem_os_t::commit(void* page_address, u32 page_size, u32 page_count)
     {
-        u32 allocation_type = MEM_COMMIT;
-        u32 protect         = PAGE_READWRITE;
-        BOOL         success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != nullptr;
+        u32  allocation_type = MEM_COMMIT;
+        u32  protect         = PAGE_READWRITE;
+        BOOL success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != nullptr;
         return success;
     }
 
     bool vmem_os_t::decommit(void* page_address, u32 page_size, u32 page_count)
     {
-        u32 allocation_type = MEM_DECOMMIT;
-        BOOL         b               = ::VirtualFree(page_address, page_size * page_count, allocation_type);
+        u32  allocation_type = MEM_DECOMMIT;
+        BOOL b               = ::VirtualFree(page_address, page_size * page_count, allocation_type);
         return b;
     }
 
@@ -187,13 +187,12 @@ namespace ncore
     static const s32 VirtualUnlockFailed                     = 16;
 
 #if !defined(VMEM_NO_ERROR_MESSAGES)
-    static s32 vmem__g_error = 0;
+    static s32 s_vmem_error = 0;
 
-    static void vmem__write_error(s32 error) { vmem__g_error = error; }
-
+    static void vmem__write_error(s32 error) { s_vmem_error = error; }
     const char* vmem_get_error_message(void)
     {
-        switch (vmem__g_error)
+        switch (s_vmem_error)
         {
             case 0: return "No error";
         }
@@ -206,18 +205,18 @@ namespace ncore
 #endif
 
     // Cached global page size.
-    static VMemSize vmem__g_page_size              = 0;
-    static VMemSize vmem__g_allocation_granularity = 0;
+    static VMemSize s_vmem_page_size              = 0;
+    static VMemSize s_vmem_allocation_granularity = 0;
 
     void vmem_init(void)
     {
         // Note: this will be 2 syscalls on windows.
-        vmem__g_page_size              = vmem_query_page_size();
-        vmem__g_allocation_granularity = vmem_query_allocation_granularity();
+        s_vmem_page_size              = vmem_query_page_size();
+        s_vmem_allocation_granularity = vmem_query_allocation_granularity();
     }
 
-    VMemSize vmem_get_page_size(void) { return vmem__g_page_size; }
-    VMemSize vmem_get_allocation_granularity(void) { return vmem__g_allocation_granularity; }
+    VMemSize vmem_get_page_size(void) { return s_vmem_page_size; }
+    VMemSize vmem_get_allocation_granularity(void) { return s_vmem_allocation_granularity; }
 
     ptr_t vmem_align_forward(const ptr_t address, const s32 align)
     {
@@ -261,20 +260,16 @@ namespace ncore
 // Windows backend implementation
 //
 #if defined(VMEM_PLATFORM_WIN32)
-
-    static DWORD vmem__win32_protect(const VMemProtect protect)
+    static const s32 s_protect_win[] = {-1, PAGE_NOACCESS, PAGE_READONLY, PAGE_READWRITE, PAGE_EXECUTE, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE};
+    static DWORD     vmem__win32_protect(const VMemProtect protect)
     {
-        switch (protect)
+        s32 const protect_win = s_protect_win[protect];
+        if (protect_win == -1)
         {
-            case nVMemProtect::NoAccess: return PAGE_NOACCESS;
-            case nVMemProtect::Read: return PAGE_READONLY;
-            case nVMemProtect::ReadWrite: return PAGE_READWRITE;
-            case nVMemProtect::Execute: return PAGE_EXECUTE;
-            case nVMemProtect::ExecuteRead: return PAGE_EXECUTE_READ;
-            case nVMemProtect::ExecuteReadWrite: return PAGE_EXECUTE_READWRITE;
+            vmem__write_error(InvalidProtectMode);
+            return nVMemResult::Error;
         }
-        vmem__write_error(InvalidProtectMode);
-        return nVMemResult::Error;
+        return protect_win;
     }
 
     static VMemProtect vmem__protect_from_win32(const DWORD protect)
@@ -304,7 +299,7 @@ namespace ncore
             // Note: memory is initialized to zero.
             return address;
         }
-        return 0;
+        return nullptr;
     }
 
     VMemResult vmem_dealloc(void* ptr, const VMemSize num_allocated_bytes)
@@ -401,20 +396,17 @@ namespace ncore
 // MacOS backend implementation
 //
 #if defined(VMEM_PLATFORM_MAC)
+    static const s32 s_protect_array[] = {-1, PROT_NONE, PROT_READ, PROT_READ | PROT_WRITE, PROT_EXEC, PROT_EXEC | PROT_READ, PROT_EXEC | PROT_READ | PROT_WRITE};
 
     static s32 vmem__mac_protect(const VMemProtect protect)
     {
-        switch (protect)
+        s32 const protect_mac = s_protect_array[protect];
+        if (protect_mac == -1)
         {
-            case nVMemProtect::NoAccess: return PROT_NONE;
-            case nVMemProtect::Read: return PROT_READ;
-            case nVMemProtect::ReadWrite: return PROT_READ | PROT_WRITE;
-            case nVMemProtect::Execute: return PROT_EXEC;
-            case nVMemProtect::ExecuteRead: return PROT_EXEC | PROT_READ;
-            case nVMemProtect::ExecuteReadWrite: return PROT_EXEC | PROT_READ | PROT_WRITE;
+            vmem__write_error(InvalidProtectMode);
+            return nVMemResult::Error;
         }
-        vmem__write_error(InvalidProtectMode);
-        return nVMemResult::Error;
+        return protect_mac;
     }
 
     static VMemProtect vmem__protect_from_mac(const s32 protect)
@@ -546,7 +538,6 @@ namespace ncore
         VMEM_ERROR_IF(result == -1, vmem__write_error_message());
         return nVMemResult::Success;
     }
-
 
 #endif
 }; // namespace ncore
