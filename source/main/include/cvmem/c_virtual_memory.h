@@ -31,9 +31,6 @@ namespace ncore
         s8       value;
     }; 
 
-    // This will return the last message after a function fails (VMemResult_Error).
-    const char* vmem_get_error_message(void);
-
     struct vmem_protect_t
     {
         u8 value;

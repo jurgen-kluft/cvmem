@@ -34,40 +34,22 @@ namespace ncore
     static const char* vmem_get_error_message(void);
 
 #if !defined(VMEM_NO_ERROR_CHECKING)
-    // clang-format off
-#if !defined(VMEM_NO_ERROR_MESSAGES)
-
-static bool VMEM_ERROR_IF(bool cond, s32 error) 
-{ 
-    if(cond) 
-    { 
-        const char* error_msg = vmem_get_error_message(); 
-        ASSERT(false);
+#    if !defined(VMEM_NO_ERROR_MESSAGES)
+    static bool vmem_check(bool cond, s32 error)
+    {
+        if (cond)
+        {
+            const char* error_msg = vmem_get_error_message(error);
+            ASSERTS(false, error_msg);
+        }
+        return !cond;
     }
-    return !cond;
-}
+#    else
+    static bool vmem_check(bool cond, s32 error) { return true; }
+#    endif
 
-static bool VMEM_ZERO_IF(bool cond, s32 error) 
-{ 
-    if(cond) 
-    { 
-        const char* error_msg = vmem_get_error_message(); 
-        ASSERT(false);
-    }
-    return !cond;
-}
 #else
-static bool VMEM_ERROR_IF(bool cond, s32 error) { return true; }
-static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
-#endif
-// clang-format on
-#else
-    static bool VMEM_ERROR_IF(bool cond, s32 error) { return true; }
-    static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
-#endif
-
-#if !defined(VMEM_ON_ERROR)
-#    define VMEM_ON_ERROR(opt_string) ASSERT(0 && (opt_string))
+    static bool vmem_check(bool cond, s32 error) { return true; }
 #endif
 
     static const s32 NoError                                 = 0;
@@ -89,16 +71,10 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
     static const s32 VirtualUnlockFailed                     = 16;
 
 #if !defined(VMEM_NO_ERROR_MESSAGES)
-    static s32 s_vmem_error = 0;
 
-    static s32 vmem__write_error(s32 error)
+    static const char* vmem_get_error_message(s32 vmem_error)
     {
-        s_vmem_error = error;
-        return error;
-    }
-    static const char* vmem_get_error_message(void)
-    {
-        switch (s_vmem_error)
+        switch (vmem_error)
         {
             case 0: return "No error";
             case AlignmentCannotBeZero: return "Alignment cannot be zero";
@@ -121,8 +97,7 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
         return "Unknown error";
     }
 #else
-#    define vmem__write_error(error) // Ignore
-
+    static s32         s32error) { return error; }
     static const char* vmem_get_error_message(void) { return "<Error messages disabled>"; }
 #endif
 
@@ -143,18 +118,18 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     ptr_t vmem_align_forward(const ptr_t address, const s32 align)
     {
-        if (!VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero)))
+        if (!vmem_check(align == 0, AlignmentCannotBeZero))
             return 0;
-        if (!VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2)))
+        if (!vmem_check((align & (align - 1)) != 0, AlignmentHasToBePowerOf2))
             return 0;
         return vmem_align_forward_fast(address, align);
     }
 
     ptr_t vmem_align_backward(const ptr_t address, const s32 align)
     {
-        if (!VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero)))
+        if (!vmem_check(align == 0, AlignmentCannotBeZero))
             return 0;
-        if (!VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2)))
+        if (!vmem_check((align & (align - 1)) != 0, AlignmentHasToBePowerOf2))
             return 0;
         return vmem_align_backward_fast(address, align);
     }
@@ -193,7 +168,7 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
         DWORD const protect_win = s_protect_array[protect.value];
         if (protect_win == 0xffffffff)
         {
-            vmem__write_error(InvalidProtectMode);
+            InvalidProtectMode;
             return {vmem_result_t::Error};
         }
         return protect_win;
@@ -210,20 +185,20 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
             case PAGE_EXECUTE_READ: return {vmem_protect_t::ExecuteRead};
             case PAGE_EXECUTE_READWRITE: return {vmem_protect_t::ExecuteReadWrite};
         }
-        vmem__write_error(InvalidProtectMode);
+        InvalidProtectMode;
         return {vmem_protect_t::Invalid};
     }
 
     void* vmem_alloc_protect(const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(CannotAllocateMemoryBlockWithSize0Bytes)))
+        if (!vmem_check(num_bytes == 0, CannotAllocateMemoryBlockWithSize0Bytes))
             return nullptr;
 
         const DWORD protect_win32 = vmem__win32_protect(protect);
         if (protect_win32)
         {
             LPVOID address = VirtualAlloc(NULL, (SIZE_T)num_bytes, MEM_RESERVE, protect_win32);
-            if (!VMEM_ERROR_IF(address == NULL, vmem__write_error(VirtualAllocReturnedNull)))
+            if (!vmem_check(address == NULL, VirtualAllocReturnedNull))
                 return nullptr;
             // Note: memory is initialized to zero.
             return address;
@@ -233,53 +208,53 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     vmem_result_t vmem_dealloc(void* ptr, const vmem_size_t num_allocated_bytes)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error(CannotDeallocAMemoryBlockOfSize0)))
+        if (!vmem_check(num_allocated_bytes == 0, CannotDeallocAMemoryBlockOfSize0))
             return {vmem_result_t::Error};
 
         const BOOL result = VirtualFree(ptr, 0, MEM_RELEASE);
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed)))
+        if (!vmem_check(result == 0, VirtualFreeFailed))
             return {vmem_result_t::Error};
         return result ? vmem_result_t{vmem_result_t::Success} : vmem_result_t{vmem_result_t::Error};
     }
 
     vmem_result_t vmem_commit_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         const LPVOID result = VirtualAlloc(ptr, num_bytes, MEM_COMMIT, vmem__win32_protect(protect));
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualAllocFailed)))
+        if (!vmem_check(result == 0, VirtualAllocFailed))
             return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_decommit(void* ptr, const vmem_size_t num_bytes)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         const BOOL result = VirtualFree(ptr, num_bytes, MEM_DECOMMIT);
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed)))
+        if (!vmem_check(result == 0, VirtualFreeFailed))
             return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         DWORD      old_protect = 0;
         const BOOL result      = VirtualProtect(ptr, num_bytes, vmem__win32_protect(protect), &old_protect);
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualProtectFailed)))
+        if (!vmem_check(result == 0, VirtualProtectFailed))
             return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
@@ -312,26 +287,26 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     vmem_result_t vmem_lock(void* ptr, const vmem_size_t num_bytes)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         const BOOL result = VirtualLock(ptr, num_bytes);
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualLockFailed)))
+        if (!vmem_check(result == 0, VirtualLockFailed))
             return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_unlock(void* ptr, const vmem_size_t num_bytes)
     {
-        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
             return {vmem_result_t::Error};
-        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         const BOOL result = VirtualUnlock(ptr, num_bytes);
-        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualUnlockFailed)))
+        if (!vmem_check(result == 0, VirtualUnlockFailed))
             return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
@@ -349,7 +324,7 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
         s32 const protect_mac = s_protect_array[protect.value];
         if (protect_mac == -1)
         {
-            vmem__write_error(InvalidProtectMode);
+            InvalidProtectMode;
             return 0;
         }
         return protect_mac;
@@ -366,25 +341,21 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
             case PROT_EXEC | PROT_READ: return {vmem_protect_t::ExecuteRead};
             case PROT_EXEC | PROT_READ | PROT_WRITE: return {vmem_protect_t::ExecuteReadWrite};
         }
-        vmem__write_error(InvalidProtectMode);
+        InvalidProtectMode;
         return {vmem_protect_t::Invalid};
     }
 
-#    if !defined(VMEM_NO_ERROR_MESSAGES)
-    static void vmem__write_error_message(void) { const char* error_msg = vmem_get_error_message(); }
-#    else
-    static inline void vmem__write_error_message(void) {}
-#    endif
-
     void* vmem_alloc_protect(const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ZERO_IF(num_bytes == 0, vmem__write_error(CannotAllocateMemoryBlockWithSize0Bytes));
+        if (!vmem_check(num_bytes == 0, CannotAllocateMemoryBlockWithSize0Bytes))
+            return nullptr;
 
         const s32 protect_mac = vmem__mac_protect(protect);
         if (protect_mac)
         {
             void* address = mmap(nullptr, num_bytes, protect_mac, MAP_PRIVATE | MAP_ANON, -1, 0);
-            VMEM_ZERO_IF(address == MAP_FAILED, vmem__write_error(FailedToFormatError));
+            if (!vmem_check(address == MAP_FAILED, FailedToFormatError))
+                return nullptr;
             return address;
         }
 
@@ -393,24 +364,30 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     vmem_result_t vmem_dealloc(void* ptr, const vmem_size_t num_allocated_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error(CannotDeallocAMemoryBlockOfSize0));
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_allocated_bytes == 0, CannotDeallocAMemoryBlockOfSize0))
+            return {vmem_result_t::Error};
 
         const s32 result = munmap(ptr, num_allocated_bytes);
-        VMEM_ERROR_IF(result == -1, vmem__write_error(FailedToFormatError));
+        if (!vmem_check(result == -1, FailedToFormatError))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_commit_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
+            return {vmem_result_t::Error};
 
         const s32 protect_mac = vmem__mac_protect(protect);
         if (protect_mac)
         {
             const s32 result = mprotect(ptr, num_bytes, protect_mac);
-            VMEM_ERROR_IF(result == -1, vmem__write_error(FailedToFormatError));
+            if (!vmem_check(result == -1, FailedToFormatError))
+                return {vmem_result_t::Error};
             return {vmem_result_t::Success};
         }
 
@@ -419,24 +396,30 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     vmem_result_t vmem_decommit(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
+            return {vmem_result_t::Error};
 
         const s32 result = mprotect(ptr, num_bytes, PROT_NONE);
-        VMEM_ERROR_IF(result == -1, vmem__write_error(FailedToFormatError));
+        if (!vmem_check(result == -1, FailedToFormatError))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
+            return {vmem_result_t::Error};
 
         const s32 protect_mac = vmem__mac_protect(protect);
         if (protect_mac)
         {
             const s32 result = mprotect(ptr, num_bytes, protect_mac);
-            VMEM_ERROR_IF(result == -1, vmem__write_error(FailedToFormatError));
+            if (!vmem_check(result == -1, FailedToFormatError))
+                return {vmem_result_t::Error};
             return {vmem_result_t::Success};
         }
 
@@ -465,78 +448,36 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     vmem_result_t vmem_lock(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
+            return {vmem_result_t::Error};
 
         const s32 result = mlock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == -1, vmem__write_error_message());
+        if (!vmem_check(result == -1, VirtualLockFailed))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_unlock(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        if (num_bytes == 0)
+        if (!vmem_check(ptr == 0, PtrCannotBeNull))
+            return {vmem_result_t::Error};
+        if (!vmem_check(num_bytes == 0, SizeCannotBe0))
             return {vmem_result_t::Error};
 
         const s32 result = munlock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == -1, vmem__write_error_message());
+        if (!vmem_check(result == -1, VirtualUnlockFailed))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
 #endif
 
-#if defined VMEM_PLATFORM_MAC
-
-    static u32 m_pagesize = 0;
+    static u32 s_pagesize = 0;
     bool       vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
     {
-        page_size = m_pagesize;
-
-        baseptr = mmap(nullptr, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
-        if (baseptr == MAP_FAILED)
-            baseptr = nullptr;
-
-        msync(baseptr, address_range, (MS_SYNC | MS_INVALIDATE));
-        return baseptr != nullptr;
-    }
-
-    bool vmem_t::release(void* baseptr, u64 address_range)
-    {
-        msync(baseptr, address_range, MS_SYNC);
-        s32 ret = munmap(baseptr, address_range);
-        ASSERT(ret == 0); // munmap failed
-        return ret == 0;
-    }
-
-    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
-        mmap(page_address, page_size * page_count, PROT_READ | PROT_WRITE, commit_flags, -1, 0);
-        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
-        return ret == 0;
-    }
-
-    bool vmem_t::decommit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
-        mmap(page_address, page_size * page_count, PROT_NONE, commit_flags, -1, 0);
-        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
-        return ret == 0;
-    }
-
-    bool vmem_t::initialize()
-    {
-        m_pagesize = (u32)vmem_init();
-        return true;
-    }
-
-#elif defined VMEM_PLATFORM_WIN32
-    static u32 m_pagesize = 0;
-
-    bool vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
-    {
-        page_size = m_pagesize;
+        page_size = s_pagesize;
         baseptr   = vmem_alloc_protect(address_range, {vmem_protect_t::ReadWrite});
         return baseptr != nullptr;
     }
@@ -547,13 +488,8 @@ static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 
     bool vmem_t::initialize()
     {
-        m_pagesize = (u32)vmem_init();
+        s_pagesize = (u32)vmem_init();
         return true;
     }
 
-#else
-
-#    error Unknown Platform/Compiler configuration for vmem
-
-#endif
 }; // namespace ncore
