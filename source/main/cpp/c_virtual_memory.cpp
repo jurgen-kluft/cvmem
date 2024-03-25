@@ -31,113 +31,46 @@ namespace ncore
     const u8 vmem_protect_t::ExecuteReadWrite = 6; // You can execute the page memory and read/write to it.
     const u8 vmem_protect_t::COUNT            = 7;
 
-#if defined VMEM_PLATFORM_MAC
-
-    static u32 m_pagesize = 0;
-    bool       vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
-    {
-        page_size = m_pagesize;
-
-        baseptr = mmap(nullptr, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
-        if (baseptr == MAP_FAILED)
-            baseptr = nullptr;
-
-        msync(baseptr, address_range, (MS_SYNC | MS_INVALIDATE));
-        return baseptr != nullptr;
-    }
-
-    bool vmem_t::release(void* baseptr, u64 address_range)
-    {
-        msync(baseptr, address_range, MS_SYNC);
-        s32 ret = munmap(baseptr, address_range);
-        ASSERT(ret == 0); // munmap failed
-        return ret == 0;
-    }
-
-    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
-        mmap(page_address, page_size * page_count, PROT_READ | PROT_WRITE, commit_flags, -1, 0);
-        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
-        return ret == 0;
-    }
-
-    bool vmem_t::decommit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
-        mmap(page_address, page_size * page_count, PROT_NONE, commit_flags, -1, 0);
-        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
-        return ret == 0;
-    }
-
-    bool vmem_t::initialize()
-    {
-        m_pagesize = (u32)vmem_init();
-        return true;
-    }
-
-#elif defined VMEM_PLATFORM_WIN32
-    static u32 m_pagesize = 0;
-
-    bool vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
-    {
-        u32 allocation_type = MEM_RESERVE | reserve_flags;
-        u32 protect         = 0;
-        baseptr             = ::VirtualAlloc(nullptr, (SIZE_T)address_range, allocation_type, protect);
-        page_size           = m_pagesize;
-        return baseptr != nullptr;
-    }
-
-    bool vmem_t::release(void* baseptr, u64 address_range)
-    {
-        BOOL b = ::VirtualFree(baseptr, 0, MEM_RELEASE);
-        return b;
-    }
-
-    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32  allocation_type = MEM_COMMIT;
-        u32  protect         = PAGE_READWRITE;
-        BOOL success         = ::VirtualAlloc(page_address, page_size * page_count, allocation_type, protect) != nullptr;
-        return success;
-    }
-
-    bool vmem_t::decommit(void* page_address, u32 page_size, u32 page_count)
-    {
-        u32  allocation_type = MEM_DECOMMIT;
-        BOOL b               = ::VirtualFree(page_address, page_size * page_count, allocation_type);
-        return b;
-    }
-
-    bool vmem_t::initialize()
-    {
-        m_pagesize = (u32)vmem_init();
-        return true;
-    }
-
-#else
-
-#    error Unknown Platform/Compiler configuration for vmem
-
-#endif
+    static const char* vmem_get_error_message(void);
 
 #if !defined(VMEM_NO_ERROR_CHECKING)
     // clang-format off
 #if !defined(VMEM_NO_ERROR_MESSAGES)
-#define VMEM_ERROR_IF(cond, write_message) do { if(cond) { write_message; VMEM_ON_ERROR(#cond); return {0}; } } while(0)
-#define VMEM_ZERO_IF(cond, write_message) do { if(cond) { write_message; VMEM_ON_ERROR(#cond); return 0; } } while(0)
+
+static bool VMEM_ERROR_IF(bool cond, s32 error) 
+{ 
+    if(cond) 
+    { 
+        const char* error_msg = vmem_get_error_message(); 
+        ASSERT(false);
+    }
+    return !cond;
+}
+
+static bool VMEM_ZERO_IF(bool cond, s32 error) 
+{ 
+    if(cond) 
+    { 
+        const char* error_msg = vmem_get_error_message(); 
+        ASSERT(false);
+    }
+    return !cond;
+}
 #else
-#define VMEM_ERROR_IF(cond, write_message) do { if(cond) { VMEM_ON_ERROR(#cond); return 0; } } while(0)
+static bool VMEM_ERROR_IF(bool cond, s32 error) { return true; }
+static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 #endif
 // clang-format on
 #else
-#    define VMEM_ERROR_IF(cond, write_message) // Ignore
+    static bool VMEM_ERROR_IF(bool cond, s32 error) { return true; }
+    static bool VMEM_ZERO_IF(bool cond, s32 error) { return true; }
 #endif
 
 #if !defined(VMEM_ON_ERROR)
 #    define VMEM_ON_ERROR(opt_string) ASSERT(0 && (opt_string))
 #endif
 
+    static const s32 NoError                                 = 0;
     static const s32 AlignmentCannotBeZero                   = 1;
     static const s32 AlignmentHasToBePowerOf2                = 2;
     static const s32 CannotAllocateMemoryBlockWithSize0Bytes = 3;
@@ -158,19 +91,39 @@ namespace ncore
 #if !defined(VMEM_NO_ERROR_MESSAGES)
     static s32 s_vmem_error = 0;
 
-    static void vmem__write_error(s32 error) { s_vmem_error = error; }
-    const char* vmem_get_error_message(void)
+    static s32 vmem__write_error(s32 error)
+    {
+        s_vmem_error = error;
+        return error;
+    }
+    static const char* vmem_get_error_message(void)
     {
         switch (s_vmem_error)
         {
             case 0: return "No error";
+            case AlignmentCannotBeZero: return "Alignment cannot be zero";
+            case AlignmentHasToBePowerOf2: return "Alignment has to be a power of 2";
+            case CannotAllocateMemoryBlockWithSize0Bytes: return "Cannot allocate memory block with size 0 bytes";
+            case CannotDeallocAMemoryBlockOfSize0: return "Cannot deallocate a memory block of size 0";
+            case FailedToFormatError: return "Failed to format error";
+            case InvalidProtectMode: return "Invalid protect mode";
+            case OutBufferPtrCannotBeNull: return "Out buffer ptr cannot be null";
+            case OutBufferSizeCannotBe0: return "Out buffer size cannot be 0";
+            case PtrCannotBeNull: return "Ptr cannot be null";
+            case SizeCannotBe0: return "Size cannot be 0";
+            case VirtualAllocFailed: return "VirtualAlloc failed";
+            case VirtualFreeFailed: return "VirtualFree failed";
+            case VirtualProtectFailed: return "VirtualProtect failed";
+            case VirtualAllocReturnedNull: return "VirtualAlloc returned null";
+            case VirtualLockFailed: return "VirtualLock failed";
+            case VirtualUnlockFailed: return "VirtualUnlock failed";
         }
-        return "<Unknown>";
+        return "Unknown error";
     }
 #else
 #    define vmem__write_error(error) // Ignore
 
-    const char* vmem_get_error_message(void) { return "<Error messages disabled>"; }
+    static const char* vmem_get_error_message(void) { return "<Error messages disabled>"; }
 #endif
 
     // Cached global page size.
@@ -190,15 +143,19 @@ namespace ncore
 
     ptr_t vmem_align_forward(const ptr_t address, const s32 align)
     {
-        VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero));
-        VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2));
+        if (!VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero)))
+            return 0;
+        if (!VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2)))
+            return 0;
         return vmem_align_forward_fast(address, align);
     }
 
     ptr_t vmem_align_backward(const ptr_t address, const s32 align)
     {
-        VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero));
-        VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2));
+        if (!VMEM_ZERO_IF(align == 0, vmem__write_error(AlignmentCannotBeZero)))
+            return 0;
+        if (!VMEM_ZERO_IF((align & (align - 1)) != 0, vmem__write_error(AlignmentHasToBePowerOf2)))
+            return 0;
         return vmem_align_backward_fast(address, align);
     }
 
@@ -230,11 +187,11 @@ namespace ncore
 // Windows backend implementation
 //
 #if defined(VMEM_PLATFORM_WIN32)
-    static const s32 s_protect_win[] = {-1, PAGE_NOACCESS, PAGE_READONLY, PAGE_READWRITE, PAGE_EXECUTE, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE};
-    static DWORD     vmem__win32_protect(const vmem_protect_t protect)
+    static const DWORD s_protect_array[] = {0xffffffff, PAGE_NOACCESS, PAGE_READONLY, PAGE_READWRITE, PAGE_EXECUTE, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE};
+    static DWORD       vmem__win32_protect(const vmem_protect_t protect)
     {
-        s32 const protect_win = s_protect_win[protect];
-        if (protect_win == -1)
+        DWORD const protect_win = s_protect_array[protect.value];
+        if (protect_win == 0xffffffff)
         {
             vmem__write_error(InvalidProtectMode);
             return {vmem_result_t::Error};
@@ -246,26 +203,28 @@ namespace ncore
     {
         switch (protect)
         {
-            case PAGE_NOACCESS: return vmem_protect_t::NoAccess;
-            case PAGE_READONLY: return vmem_protect_t::Read;
-            case PAGE_READWRITE: return vmem_protect_t::ReadWrite;
-            case PAGE_EXECUTE: return vmem_protect_t::Execute;
-            case PAGE_EXECUTE_READ: return vmem_protect_t::ExecuteRead;
-            case PAGE_EXECUTE_READWRITE: return vmem_protect_t::ExecuteReadWrite;
+            case PAGE_NOACCESS: return {vmem_protect_t::NoAccess};
+            case PAGE_READONLY: return {vmem_protect_t::Read};
+            case PAGE_READWRITE: return {vmem_protect_t::ReadWrite};
+            case PAGE_EXECUTE: return {vmem_protect_t::Execute};
+            case PAGE_EXECUTE_READ: return {vmem_protect_t::ExecuteRead};
+            case PAGE_EXECUTE_READWRITE: return {vmem_protect_t::ExecuteReadWrite};
         }
         vmem__write_error(InvalidProtectMode);
-        return vmem_protect_t::Invalid;
+        return {vmem_protect_t::Invalid};
     }
 
     void* vmem_alloc_protect(const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(CannotAllocateMemoryBlockWithSize0Bytes));
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(CannotAllocateMemoryBlockWithSize0Bytes)))
+            return nullptr;
 
         const DWORD protect_win32 = vmem__win32_protect(protect);
         if (protect_win32)
         {
             LPVOID address = VirtualAlloc(NULL, (SIZE_T)num_bytes, MEM_RESERVE, protect_win32);
-            VMEM_ERROR_IF(address == NULL, vmem__write_error(VirtualAllocReturnedNull));
+            if (!VMEM_ERROR_IF(address == NULL, vmem__write_error(VirtualAllocReturnedNull)))
+                return nullptr;
             // Note: memory is initialized to zero.
             return address;
         }
@@ -274,42 +233,54 @@ namespace ncore
 
     vmem_result_t vmem_dealloc(void* ptr, const vmem_size_t num_allocated_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error(CannotDeallocAMemoryBlockOfSize0));
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_allocated_bytes == 0, vmem__write_error(CannotDeallocAMemoryBlockOfSize0)))
+            return {vmem_result_t::Error};
 
         const BOOL result = VirtualFree(ptr, 0, MEM_RELEASE);
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed));
-        return {vmem_result_t::Success};
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed)))
+            return {vmem_result_t::Error};
+        return result ? vmem_result_t{vmem_result_t::Success} : vmem_result_t{vmem_result_t::Error};
     }
 
     vmem_result_t vmem_commit_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+            return {vmem_result_t::Error};
 
         const LPVOID result = VirtualAlloc(ptr, num_bytes, MEM_COMMIT, vmem__win32_protect(protect));
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualAllocFailed));
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualAllocFailed)))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_decommit(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+            return {vmem_result_t::Error};
 
         const BOOL result = VirtualFree(ptr, num_bytes, MEM_DECOMMIT);
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed));
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualFreeFailed)))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_protect(void* ptr, const vmem_size_t num_bytes, const vmem_protect_t protect)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+            return {vmem_result_t::Error};
 
         DWORD      old_protect = 0;
         const BOOL result      = VirtualProtect(ptr, num_bytes, vmem__win32_protect(protect), &old_protect);
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualProtectFailed));
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualProtectFailed)))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
@@ -327,12 +298,12 @@ namespace ncore
         return system_info.dwAllocationGranularity;
     }
 
-    VMemUsageStatus vmem_query_usage_status(void)
+    vmem_usage_t vmem_query_usage_status(void)
     {
         MEMORYSTATUS status = {0};
         GlobalMemoryStatus(&status);
 
-        VMemUsageStatus usage_status      = {0};
+        vmem_usage_t usage_status         = {0};
         usage_status.total_physical_bytes = status.dwTotalPhys;
         usage_status.avail_physical_bytes = status.dwAvailPhys;
 
@@ -341,22 +312,27 @@ namespace ncore
 
     vmem_result_t vmem_lock(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0));
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+            return {vmem_result_t::Error};
 
         const BOOL result = VirtualLock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualLockFailed));
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualLockFailed)))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
     vmem_result_t vmem_unlock(void* ptr, const vmem_size_t num_bytes)
     {
-        VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull));
-        if (num_bytes == 0)
-            return 0;
+        if (!VMEM_ERROR_IF(ptr == 0, vmem__write_error(PtrCannotBeNull)))
+            return {vmem_result_t::Error};
+        if (!VMEM_ERROR_IF(num_bytes == 0, vmem__write_error(SizeCannotBe0)))
+            return {vmem_result_t::Error};
 
         const BOOL result = VirtualUnlock(ptr, num_bytes);
-        VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualUnlockFailed));
+        if (!VMEM_ERROR_IF(result == 0, vmem__write_error(VirtualUnlockFailed)))
+            return {vmem_result_t::Error};
         return {vmem_result_t::Success};
     }
 
@@ -472,7 +448,7 @@ namespace ncore
 
     vmem_usage_t vmem_query_usage_status(void)
     {
-        vmem_usage_t usage_status      = {0};
+        vmem_usage_t usage_status         = {0};
         usage_status.total_physical_bytes = 0;
         usage_status.avail_physical_bytes = 0;
 
@@ -507,6 +483,77 @@ namespace ncore
         VMEM_ERROR_IF(result == -1, vmem__write_error_message());
         return {vmem_result_t::Success};
     }
+
+#endif
+
+#if defined VMEM_PLATFORM_MAC
+
+    static u32 m_pagesize = 0;
+    bool       vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
+    {
+        page_size = m_pagesize;
+
+        baseptr = mmap(nullptr, address_range, PROT_NONE, MAP_PRIVATE | MAP_ANON | reserve_flags, -1, 0);
+        if (baseptr == MAP_FAILED)
+            baseptr = nullptr;
+
+        msync(baseptr, address_range, (MS_SYNC | MS_INVALIDATE));
+        return baseptr != nullptr;
+    }
+
+    bool vmem_t::release(void* baseptr, u64 address_range)
+    {
+        msync(baseptr, address_range, MS_SYNC);
+        s32 ret = munmap(baseptr, address_range);
+        ASSERT(ret == 0); // munmap failed
+        return ret == 0;
+    }
+
+    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count)
+    {
+        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
+        mmap(page_address, page_size * page_count, PROT_READ | PROT_WRITE, commit_flags, -1, 0);
+        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
+        return ret == 0;
+    }
+
+    bool vmem_t::decommit(void* page_address, u32 page_size, u32 page_count)
+    {
+        u32 const commit_flags = MAP_FIXED | MAP_PRIVATE | MAP_ANON;
+        mmap(page_address, page_size * page_count, PROT_NONE, commit_flags, -1, 0);
+        s32 ret = msync(page_address, page_size * page_count, MS_SYNC | MS_INVALIDATE);
+        return ret == 0;
+    }
+
+    bool vmem_t::initialize()
+    {
+        m_pagesize = (u32)vmem_init();
+        return true;
+    }
+
+#elif defined VMEM_PLATFORM_WIN32
+    static u32 m_pagesize = 0;
+
+    bool vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
+    {
+        page_size = m_pagesize;
+        baseptr   = vmem_alloc_protect(address_range, {vmem_protect_t::ReadWrite});
+        return baseptr != nullptr;
+    }
+
+    bool vmem_t::release(void* baseptr, u64 address_range) { return vmem_dealloc(baseptr, address_range).value == vmem_result_t::Success; }
+    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count) { return vmem_commit_protect(page_address, (u64)page_size * page_count, {vmem_protect_t::ReadWrite}).value == vmem_result_t::Success; }
+    bool vmem_t::decommit(void* baseptr, u32 page_size, u32 page_count) { return vmem_decommit(baseptr, (u64)page_size * page_count).value == vmem_result_t::Success; }
+
+    bool vmem_t::initialize()
+    {
+        m_pagesize = (u32)vmem_init();
+        return true;
+    }
+
+#else
+
+#    error Unknown Platform/Compiler configuration for vmem
 
 #endif
 }; // namespace ncore
