@@ -31,7 +31,7 @@ namespace ncore
     const u8 vmem_protect_t::ExecuteReadWrite = 6; // You can execute the page memory and read/write to it.
     const u8 vmem_protect_t::COUNT            = 7;
 
-    static const char* vmem_get_error_message(void);
+    static const char* vmem_get_error_message(s32 vmem_error);
 
 #if !defined(VMEM_NO_ERROR_CHECKING)
 #    if !defined(VMEM_NO_ERROR_MESSAGES)
