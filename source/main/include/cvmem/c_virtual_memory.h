@@ -27,9 +27,13 @@ namespace ncore
     {
         static const s8 Error   = 0; // false
         static const s8 Success = 1; // true
+
+        inline bool IsError() const { return value == Error; }
+        inline bool IsSuccess() const { return value == Success; }
+
         inline operator bool() const { return value == Success; }
         s8       value;
-    }; 
+    };
 
     struct vmem_protect_t
     {

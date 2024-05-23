@@ -20,6 +20,11 @@
 #    define VMEM_PLATFORM_WIN32
 #endif
 
+#if !defined(TARGET_DEBUG)
+#    define VMEM_NO_ERROR_CHECKING
+#    define VMEM_NO_ERROR_MESSAGES
+#endif
+
 namespace ncore
 {
     const u8 vmem_protect_t::Invalid          = 0;
