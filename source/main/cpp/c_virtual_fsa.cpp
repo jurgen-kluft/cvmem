@@ -2,7 +2,7 @@
 #include "ccore/c_debug.h"
 
 #include "cvmem/c_virtual_memory.h"
-#include "cvmem/c_virtual_items.h"
+#include "cvmem/c_virtual_fsa.h"
 
 namespace ncore
 {
@@ -21,8 +21,6 @@ namespace ncore
         , m_item_cap(0)
         , m_free_index(0)
         , m_free_head(0xffffffff)
-        , m_page_max(0)
-        , m_page_size_shift(0)
     {
     }
 
@@ -39,12 +37,12 @@ namespace ncore
         m_item_cap   = 0;
         m_item_size  = item_size;
         m_item_count = initial_item_count;
-        m_page_max   = s_number_of_pages(item_size, maximum_item_count, m_page_size_shift);
+        u32 const page_max   = (item_size * maximum_item_count) / vmem_get_page_size();
 
         u32 page_com = s_number_of_pages(item_size, initial_item_count, page_size);
-        if (page_com > m_page_max)
+        if (page_com > page_max)
         {
-            page_com = m_page_max;
+            page_com = page_max;
         }
 
         if (page_com > 0)
@@ -52,7 +50,7 @@ namespace ncore
             if (!vmem_t::commit(m_baseptr, page_size, page_com))
                 return false;
 
-            m_item_cap = (page_com << m_page_size_shift) / m_item_size;
+            m_item_cap = (page_com * vmem_get_page_size()) / m_item_size;
         }
 
         return true;
@@ -60,7 +58,8 @@ namespace ncore
 
     bool vmem_fsa_t::exit()
     {
-        if (!vmem_t::release(m_baseptr, m_page_max << m_page_size_shift))
+        u32 const page_max   = ((m_item_size * m_item_cap) + vmem_get_page_size() - 1) / vmem_get_page_size();
+        if (!vmem_t::release(m_baseptr, page_max * vmem_get_page_size()))
             return false;
         return true;
     }

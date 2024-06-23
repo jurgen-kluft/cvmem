@@ -25,6 +25,7 @@ namespace ncore
     }
 
 #else
+    static void vmem__write_error_message(const char* error_msg) {}
     static bool vmem_check(bool cond, const char* error_msg) { return true; }
 #endif
 

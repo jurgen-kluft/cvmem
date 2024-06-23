@@ -102,8 +102,7 @@ namespace ncore
         return "Unknown error";
     }
 #else
-    static s32         s32error) { return error; }
-    static const char* vmem_get_error_message(void) { return "<Error messages disabled>"; }
+    static const char* vmem_get_error_message(s32 _) { return "<Error messages disabled>"; }
 #endif
 
     // Cached global page size.
@@ -329,7 +328,7 @@ namespace ncore
         s32 const protect_mac = s_protect_array[protect.value];
         if (protect_mac == -1)
         {
-            InvalidProtectMode;
+            vmem_check(false, InvalidProtectMode);
             return 0;
         }
         return protect_mac;
@@ -346,7 +345,7 @@ namespace ncore
             case PROT_EXEC | PROT_READ: return {vmem_protect_t::ExecuteRead};
             case PROT_EXEC | PROT_READ | PROT_WRITE: return {vmem_protect_t::ExecuteReadWrite};
         }
-        InvalidProtectMode;
+        vmem_check(false, InvalidProtectMode);
         return {vmem_protect_t::Invalid};
     }
 
