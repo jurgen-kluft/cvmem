@@ -7,16 +7,32 @@
 
 namespace ncore
 {
+    struct vmem_protect_t
+    {
+        u8 value;
+
+        static const u8 Invalid;
+        static const u8 NoAccess;         // The page memory cannot be accessed at all.
+        static const u8 Read;             // You can only read from the page memory .
+        static const u8 ReadWrite;        // You can read and write to the page memory. This is the most common option.
+        static const u8 Execute;          // You can only execute the page memory .
+        static const u8 ExecuteRead;      // You can execute the page memory and read from it.
+        static const u8 ExecuteReadWrite; // You can execute the page memory and read/write to it.
+        static const u8 COUNT;
+    };
+
     class vmem_t
     {
     public:
         static bool initialize();
 
-        static bool reserve(u64 address_range, u32& page_size, u32 attributes, void*& baseptr);
+        static u32 page_size();
+
+        static bool reserve(u64 address_range, vmem_protect_t attributes, void*& baseptr);
         static bool release(void* baseptr, u64 address_range);
 
-        static bool commit(void* address, u32 page_size, u32 page_count);
-        static bool decommit(void* address, u32 page_size, u32 page_count);
+        static bool commit(void* address, u64 size);
+        static bool decommit(void* address, u64 size);
     };
 
     typedef int_t vmem_size_t;
@@ -32,21 +48,7 @@ namespace ncore
         inline bool IsSuccess() const { return value == Success; }
 
         inline operator bool() const { return value == Success; }
-        s8       value;
-    };
-
-    struct vmem_protect_t
-    {
-        u8 value;
-
-        static const u8 Invalid;
-        static const u8 NoAccess;         // The page memory cannot be accessed at all.
-        static const u8 Read;             // You can only read from the page memory .
-        static const u8 ReadWrite;        // You can read and write to the page memory. This is the most common option.
-        static const u8 Execute;          // You can only execute the page memory .
-        static const u8 ExecuteRead;      // You can execute the page memory and read from it.
-        static const u8 ExecuteReadWrite; // You can execute the page memory and read/write to it.
-        static const u8 COUNT;
+        s8     value;
     };
 
     // Global memory status.
@@ -170,7 +172,11 @@ namespace ncore
 
     // Faster version of `vmem_is_aligned`, because it doesn't do any error checking and can be inlined.
     // The alignment must be a power of 2.
-    inline vmem_result_t vmem_is_aligned_fast(const ptr_t address, const s32 align) { s8 result = (address & (align - 1)) == 0 ? vmem_result_t::Success : vmem_result_t::Error; return {result}; }
+    inline vmem_result_t vmem_is_aligned_fast(const ptr_t address, const s32 align)
+    {
+        s8 result = (address & (align - 1)) == 0 ? vmem_result_t::Success : vmem_result_t::Error;
+        return {result};
+    }
 
 }; // namespace ncore
 

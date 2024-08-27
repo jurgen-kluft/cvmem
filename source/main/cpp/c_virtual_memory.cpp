@@ -479,16 +479,17 @@ namespace ncore
 #endif
 
     static u32 s_pagesize = 0;
-    bool       vmem_t::reserve(u64 address_range, u32& page_size, u32 reserve_flags, void*& baseptr)
+    bool       vmem_t::reserve(u64 address_range, vmem_protect_t attributes, void*& baseptr)
     {
-        page_size = s_pagesize;
-        baseptr   = vmem_alloc_protect(address_range, {vmem_protect_t::ReadWrite});
+        baseptr = vmem_alloc_protect(address_range, attributes);
         return baseptr != nullptr;
     }
 
+    u32 vmem_t::page_size() { return s_pagesize; }
+
     bool vmem_t::release(void* baseptr, u64 address_range) { return vmem_dealloc(baseptr, address_range).value == vmem_result_t::Success; }
-    bool vmem_t::commit(void* page_address, u32 page_size, u32 page_count) { return vmem_commit_protect(page_address, (u64)page_size * page_count, {vmem_protect_t::ReadWrite}).value == vmem_result_t::Success; }
-    bool vmem_t::decommit(void* baseptr, u32 page_size, u32 page_count) { return vmem_decommit(baseptr, (u64)page_size * page_count).value == vmem_result_t::Success; }
+    bool vmem_t::commit(void* page_address, u64 size) { return vmem_commit_protect(page_address, size, {vmem_protect_t::ReadWrite}).value == vmem_result_t::Success; }
+    bool vmem_t::decommit(void* baseptr, u64 size) { return vmem_decommit(baseptr, size).value == vmem_result_t::Success; }
 
     bool vmem_t::initialize()
     {
