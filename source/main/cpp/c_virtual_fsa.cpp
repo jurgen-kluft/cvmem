@@ -31,7 +31,7 @@ namespace ncore
         m_baseptr                       = nullptr;
         u32       page_size             = 0;
         u64 const maximum_address_range = maximum_item_count * item_size;
-        if (!vmem_t::reserve(maximum_address_range, page_size, 0, m_baseptr))
+        if (!vmem_t::reserve(maximum_address_range, {vmem_protect_t::ReadWrite}, m_baseptr))
             return false;
 
         m_item_cap   = 0;
@@ -47,7 +47,7 @@ namespace ncore
 
         if (page_com > 0)
         {
-            if (!vmem_t::commit(m_baseptr, page_size, page_com))
+            if (!vmem_t::commit(m_baseptr, (u64)page_size * page_com))
                 return false;
 
             m_item_cap = (page_com * vmem_get_page_size()) / m_item_size;

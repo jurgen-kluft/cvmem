@@ -31,17 +31,17 @@ namespace ncore
 
     vmem_arena_t vmem_arena_init(void* mem, const vmem_size_t size_bytes)
     {
+        vmem_arena_t arena = {0};
         if (!vmem_is_aligned((ptr_t)mem, vmem_get_page_size()))
         {
             vmem__write_error_message("Arena must be aligned to page size.");
-            return (vmem_arena_t){0};
+            return arena;
         }
         if (size_bytes == 0)
         {
             vmem__write_error_message("Size cannot be 0.");
-            return (vmem_arena_t){0};
+            return arena;
         }
-        vmem_arena_t arena = {0};
         arena.mem          = (u8*)mem;
         arena.size_bytes   = size_bytes;
         return arena;
@@ -49,12 +49,12 @@ namespace ncore
 
     vmem_arena_t vmem_arena_init_alloc(vmem_size_t size_bytes)
     {
+        vmem_arena_t arena = {0};
         if (size_bytes == 0)
         {
             vmem__write_error_message("Arena size cannot be zero.");
-            return (vmem_arena_t){0};
+            return arena;
         }
-        vmem_arena_t arena = {0};
         arena.mem          = (u8*)vmem_alloc(size_bytes);
         arena.size_bytes   = size_bytes;
         return arena;

@@ -106,10 +106,10 @@ namespace ncore
 #endif
 
     // Cached global page size.
-    static vmem_size_t s_vmem_page_size              = 0;
-    static vmem_size_t s_vmem_allocation_granularity = 0;
+    static u32         s_vmem_page_size              = 0;
+    static u32 s_vmem_allocation_granularity = 0;
 
-    vmem_size_t vmem_init(void)
+    u32 vmem_init(void)
     {
         // Note: this will be 2 syscalls on windows.
         s_vmem_page_size              = vmem_query_page_size();
@@ -117,10 +117,10 @@ namespace ncore
         return s_vmem_page_size;
     }
 
-    vmem_size_t vmem_get_page_size(void) { return s_vmem_page_size; }
-    vmem_size_t vmem_get_allocation_granularity(void) { return s_vmem_allocation_granularity; }
+    u32 vmem_get_page_size(void) { return s_vmem_page_size; }
+    u32 vmem_get_allocation_granularity(void) { return s_vmem_allocation_granularity; }
 
-    ptr_t vmem_align_forward(const ptr_t address, const s32 align)
+    ptr_t vmem_align_forward(const ptr_t address, const u32 align)
     {
         if (!vmem_check(align == 0, AlignmentCannotBeZero))
             return 0;
@@ -129,7 +129,7 @@ namespace ncore
         return vmem_align_forward_fast(address, align);
     }
 
-    ptr_t vmem_align_backward(const ptr_t address, const s32 align)
+    ptr_t vmem_align_backward(const ptr_t address, const u32 align)
     {
         if (!vmem_check(align == 0, AlignmentCannotBeZero))
             return 0;
@@ -138,7 +138,7 @@ namespace ncore
         return vmem_align_backward_fast(address, align);
     }
 
-    vmem_result_t vmem_is_aligned(const ptr_t address, const s32 align)
+    vmem_result_t vmem_is_aligned(const ptr_t address, const u32 align)
     {
         if (align == 0)
             return {vmem_result_t::Error};
@@ -263,18 +263,18 @@ namespace ncore
         return {vmem_result_t::Success};
     }
 
-    vmem_size_t vmem_query_page_size(void)
+    u32 vmem_query_page_size(void)
     {
         SYSTEM_INFO system_info = {0};
         GetSystemInfo(&system_info);
-        return system_info.dwPageSize;
+        return (u32)system_info.dwPageSize;
     }
 
-    vmem_size_t vmem_query_allocation_granularity(void)
+    u32 vmem_query_allocation_granularity(void)
     {
         SYSTEM_INFO system_info = {0};
         GetSystemInfo(&system_info);
-        return system_info.dwAllocationGranularity;
+        return (u32)system_info.dwAllocationGranularity;
     }
 
     vmem_usage_t vmem_query_usage_status(void)

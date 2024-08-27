@@ -62,7 +62,7 @@ namespace ncore
     // This exists only to cache result of `vmem_query_page_size` so you can use faster `vmem_get_page_size`,
     // so this is completely optional. If you don't call this `vmem_get_page_size` will return 0.
     // Currently there isn't any deinit/shutdown code.
-    vmem_size_t vmem_init(void);
+    u32 vmem_init(void);
 
     // Reserve (allocate but don't commit) a block of static address-space of size `num_byt;
     // @returns 0 on error, start address of the allocated memory block on success.
@@ -118,19 +118,19 @@ namespace ncore
     vmem_result_t vmem_protect(void* ptr, vmem_size_t num_bytes, vmem_protect_t protect);
 
     // @returns cached value from `vmem_query_page_size`. Returns 0 if you don't call `vmem_init`.
-    vmem_size_t vmem_get_page_size(void);
+    u32 vmem_get_page_size(void);
 
     // Query the page size from the system. Usually something like 4096 bytes.
     // @returns the page size in number bytes. Cannot fail.
-    vmem_size_t vmem_query_page_size(void);
+    u32 vmem_query_page_size(void);
 
     // @returns cached value from `vmem_query_allocation_granularity`. Returns 0 if you don't call `vmem_init`.
-    vmem_size_t vmem_get_allocation_granularity(void);
+    u32 vmem_get_allocation_granularity(void);
 
     // Query the allocation granularity (alignment of each allocation) from the system.
     // Usually 65KB on Windows and 4KB on linux (on linux it's page size).
     // @returns allocation granularity in bytes.
-    vmem_size_t vmem_query_allocation_granularity(void);
+    u32 vmem_query_allocation_granularity(void);
 
     // Query the memory usage status from the system.
     vmem_usage_t vmem_query_usage_status(void);
@@ -154,27 +154,27 @@ namespace ncore
     // Round the `address` up to the next (or current) aligned address.
     // @param align: Address alignment. Must be a power of 2 and greater than 0.
     // @returns aligned address on success, VMemResult_Error on error.
-    ptr_t vmem_align_forward(const ptr_t address, const s32 align);
+    ptr_t vmem_align_forward(const ptr_t address, const u32 align);
 
     // Round the `address` down to the previous (or current) aligned address.
     // @param align: Address alignment. Must be a power of 2 and greater than 0.
     // @returns aligned address on success, VMemResult_Error on error.
-    ptr_t vmem_align_backward(const ptr_t address, const s32 align);
+    ptr_t vmem_align_backward(const ptr_t address, const u32 align);
 
     // Check if an address is a multiple of `align`.
-    vmem_result_t vmem_is_aligned(const ptr_t address, const s32 align);
+    vmem_result_t vmem_is_aligned(const ptr_t address, const u32 align);
 
     // Faster version of `vmem_align_forward`, because it doesn't do any error checking and can be inlined.
-    inline ptr_t vmem_align_forward_fast(const ptr_t address, const s32 align) { return (address + (ptr_t)(align - 1)) & ~(ptr_t)(align - 1); }
+    inline ptr_t vmem_align_forward_fast(const ptr_t address, const u32 align) { return (address + (ptr_t)(align - 1)) & ~(ptr_t)(align - 1); }
 
     // Faster version of `vmem_align_backward`, because it doesn't do any error checking and can be inlined.
-    inline ptr_t vmem_align_backward_fast(const ptr_t address, const s32 align) { return address & ~(align - 1); }
+    inline ptr_t vmem_align_backward_fast(const ptr_t address, const u32 align) { return address & ~(ptr_t)(align - 1); }
 
     // Faster version of `vmem_is_aligned`, because it doesn't do any error checking and can be inlined.
     // The alignment must be a power of 2.
-    inline vmem_result_t vmem_is_aligned_fast(const ptr_t address, const s32 align)
+    inline vmem_result_t vmem_is_aligned_fast(const ptr_t address, const u32 align)
     {
-        s8 result = (address & (align - 1)) == 0 ? vmem_result_t::Success : vmem_result_t::Error;
+        s8 result = (address & (ptr_t)(align - 1)) == 0 ? vmem_result_t::Success : vmem_result_t::Error;
         return {result};
     }
 
