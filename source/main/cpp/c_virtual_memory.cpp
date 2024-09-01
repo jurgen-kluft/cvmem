@@ -430,8 +430,8 @@ namespace ncore
         return {vmem_result_t::Error};
     }
 
-    vmem_size_t vmem_query_page_size(void) { return (vmem_size_t)vm_page_size; }
-    vmem_size_t vmem_query_allocation_granularity(void) { return (vmem_size_t)vm_page_size; }
+    u32 vmem_query_page_size(void) { return (vmem_size_t)vm_page_size; }
+    u32 vmem_query_allocation_granularity(void) { return (vmem_size_t)vm_page_size; }
 
     vmem_usage_t vmem_query_usage_status(void)
     {
