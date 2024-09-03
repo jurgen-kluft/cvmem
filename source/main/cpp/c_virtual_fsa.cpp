@@ -31,13 +31,13 @@ namespace ncore
         m_baseptr                       = nullptr;
         u32       page_size             = 0;
         u64 const maximum_address_range = maximum_item_count * item_size;
-        if (!vmem_t::reserve(maximum_address_range, {vmem_protect_t::ReadWrite}, m_baseptr))
+        if (!nvmem::reserve(maximum_address_range, {nvmem::ReadWrite}, m_baseptr))
             return false;
 
         m_item_cap   = 0;
         m_item_size  = item_size;
         m_item_count = initial_item_count;
-        u32 const page_max   = (item_size * maximum_item_count) / vmem_get_page_size();
+        u32 const page_max = (item_size * maximum_item_count) / nvmem::get_page_size();
 
         u32 page_com = s_number_of_pages(item_size, initial_item_count, page_size);
         if (page_com > page_max)
@@ -47,10 +47,10 @@ namespace ncore
 
         if (page_com > 0)
         {
-            if (!vmem_t::commit(m_baseptr, (u64)page_size * page_com))
+            if (!nvmem::commit(m_baseptr, (u64)page_size * page_com))
                 return false;
 
-            m_item_cap = (page_com * vmem_get_page_size()) / m_item_size;
+            m_item_cap = (page_com * nvmem::get_page_size()) / m_item_size;
         }
 
         return true;
@@ -58,8 +58,8 @@ namespace ncore
 
     bool vmem_fsa_t::exit()
     {
-        u32 const page_max   = ((m_item_size * m_item_cap) + vmem_get_page_size() - 1) / vmem_get_page_size();
-        if (!vmem_t::release(m_baseptr, page_max * vmem_get_page_size()))
+        u32 const page_max   = ((m_item_size * m_item_cap) + nvmem::get_page_size() - 1) / nvmem::get_page_size();
+        if (!nvmem::release(m_baseptr, page_max * nvmem::get_page_size()))
             return false;
         return true;
     }
