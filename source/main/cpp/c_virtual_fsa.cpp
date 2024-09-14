@@ -31,7 +31,7 @@ namespace ncore
         m_baseptr                       = nullptr;
         u32       page_size             = 0;
         u64 const maximum_address_range = maximum_item_count * item_size;
-        if (!nvmem::reserve(maximum_address_range, {nvmem::ReadWrite}, m_baseptr))
+        if (!nvmem::reserve(maximum_address_range, nvmem::ReadWrite, m_baseptr))
             return false;
 
         m_item_cap   = 0;

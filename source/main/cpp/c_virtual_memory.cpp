@@ -283,10 +283,10 @@ namespace ncore
 
         static s32 _mac_protect(const protect_t protect)
         {
-            s32 const protect_mac = s_protect_array[protect.value];
+            s32 const protect_mac = s_protect_array[protect];
             if (protect_mac == -1)
             {
-                check(false, InvalidProtectMode);
+                check(false, ErrorInvalidProtectMode);
                 return 0;
             }
             return protect_mac;
@@ -296,27 +296,27 @@ namespace ncore
         {
             switch (protect)
             {
-                case PROT_NONE: return {NoAccess};
-                case PROT_READ: return {Read};
-                case PROT_READ | PROT_WRITE: return {ReadWrite};
-                case PROT_EXEC: return {Execute};
-                case PROT_EXEC | PROT_READ: return {ExecuteRead};
-                case PROT_EXEC | PROT_READ | PROT_WRITE: return {ExecuteReadWrite};
+                case PROT_NONE: return NoAccess;
+                case PROT_READ: return Read;
+                case PROT_READ | PROT_WRITE: return ReadWrite;
+                case PROT_EXEC: return Execute;
+                case PROT_EXEC | PROT_READ: return ExecuteRead;
+                case PROT_EXEC | PROT_READ | PROT_WRITE: return ExecuteReadWrite;
             }
-            check(false, InvalidProtectMode);
-            return {Invalid};
+            check(false, ErrorInvalidProtectMode);
+            return Invalid;
         }
 
         void* alloc_protect(const size_t num_bytes, const protect_t protect)
         {
-            if (!check(num_bytes == 0, CannotAllocateMemoryBlockWithSize0Bytes))
+            if (!check(num_bytes == 0, ErrorCannotAllocateMemoryBlockWithSize0Bytes))
                 return nullptr;
 
             const s32 protect_mac = _mac_protect(protect);
             if (protect_mac)
             {
                 void* address = mmap(nullptr, num_bytes, protect_mac, MAP_PRIVATE | MAP_ANON, -1, 0);
-                if (!check(address == MAP_FAILED, FailedToFormatError))
+                if (!check(address == MAP_FAILED, ErrorFailedToFormatError))
                     return nullptr;
                 return address;
             }
@@ -326,29 +326,29 @@ namespace ncore
 
         bool dealloc(void* ptr, const size_t num_allocated_bytes)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_allocated_bytes == 0, CannotDeallocAMemoryBlockOfSize0))
+            if (!check(num_allocated_bytes == 0, ErrorCannotDeallocAMemoryBlockOfSize0))
                 return false;
 
             const s32 result = munmap(ptr, num_allocated_bytes);
-            if (!check(result == -1, FailedToFormatError))
+            if (!check(result == -1, ErrorFailedToFormatError))
                 return false;
             return true;
         }
 
         bool commit_protect(void* ptr, const size_t num_bytes, const protect_t protect)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_bytes == 0, SizeCannotBe0))
+            if (!check(num_bytes == 0, ErrorSizeCannotBe0))
                 return false;
 
             const s32 protect_mac = _mac_protect(protect);
             if (protect_mac)
             {
                 const s32 result = mprotect(ptr, num_bytes, protect_mac);
-                if (!check(result == -1, FailedToFormatError))
+                if (!check(result == -1, ErrorFailedToFormatError))
                     return false;
                 return true;
             }
@@ -358,29 +358,29 @@ namespace ncore
 
         bool decommit(void* ptr, const size_t num_bytes)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_bytes == 0, SizeCannotBe0))
+            if (!check(num_bytes == 0, ErrorSizeCannotBe0))
                 return false;
 
             const s32 result = mprotect(ptr, num_bytes, PROT_NONE);
-            if (!check(result == -1, FailedToFormatError))
+            if (!check(result == -1, ErrorFailedToFormatError))
                 return false;
             return true;
         }
 
         bool protect(void* ptr, const size_t num_bytes, const protect_t protect)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_bytes == 0, SizeCannotBe0))
+            if (!check(num_bytes == 0, ErrorSizeCannotBe0))
                 return false;
 
             const s32 protect_mac = _mac_protect(protect);
             if (protect_mac)
             {
                 const s32 result = mprotect(ptr, num_bytes, protect_mac);
-                if (!check(result == -1, FailedToFormatError))
+                if (!check(result == -1, ErrorFailedToFormatError))
                     return false;
                 return true;
             }
@@ -410,26 +410,26 @@ namespace ncore
 
         bool lock(void* ptr, const size_t num_bytes)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_bytes == 0, SizeCannotBe0))
+            if (!check(num_bytes == 0, ErrorSizeCannotBe0))
                 return false;
 
             const s32 result = mlock(ptr, num_bytes);
-            if (!check(result == -1, VirtualLockFailed))
+            if (!check(result == -1, ErrorVirtualLockFailed))
                 return false;
             return true;
         }
 
         bool unlock(void* ptr, const size_t num_bytes)
         {
-            if (!check(ptr == 0, PtrCannotBeNull))
+            if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
-            if (!check(num_bytes == 0, SizeCannotBe0))
+            if (!check(num_bytes == 0, ErrorSizeCannotBe0))
                 return false;
 
             const s32 result = munlock(ptr, num_bytes);
-            if (!check(result == -1, VirtualUnlockFailed))
+            if (!check(result == -1, ErrorVirtualUnlockFailed))
                 return false;
             return true;
         }
