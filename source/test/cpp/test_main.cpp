@@ -15,7 +15,7 @@ namespace ncore
     public:
         UnitTestAssertHandler() { NumberOfAsserts = 0; }
 
-        virtual bool handle_assert(u32& flags, const char* fileName, s32 lineNumber, const char* exprString, const char* messageString)
+        virtual bool handle_assert(const char* fileName, s32 lineNumber, const char* exprString, const char* messageString)
         {
             UnitTest::ReportAssert(exprString, fileName, lineNumber);
             NumberOfAsserts++;
@@ -36,8 +36,7 @@ namespace ncore
         }
 
         virtual void* v_allocate(u32 size, u32 alignment) { return mAllocator->Allocate(size, alignment); }
-        virtual u32   v_deallocate(void* mem) { return mAllocator->Deallocate(mem); }
-        virtual void  v_release() {}
+        virtual void  v_deallocate(void* mem) { mAllocator->Deallocate(mem); }
     };
 } // namespace ncore
 

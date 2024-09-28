@@ -5,11 +5,11 @@
 #include "cunittest/cunittest.h"
 
 #include "cvmem/c_virtual_memory.h"
-#include "cvmem/c_virtual_items.h"
+#include "cvmem/c_virtual_pool.h"
 
 using namespace ncore;
 
-UNITTEST_SUITE_BEGIN(virtual_items)
+UNITTEST_SUITE_BEGIN(virtual_pool)
 {
     UNITTEST_FIXTURE(main)
     {
@@ -27,16 +27,15 @@ UNITTEST_SUITE_BEGIN(virtual_items)
 
         UNITTEST_TEST(init_exit)
         {
-            virtual_items_t array;
-            array.init(sizeof(entity_t), 4096, 65536);
-
+            nvmem::pool_t array;
+            array.init(sizeof(entity_t), alignof(entity_t), 4096, 65536);
             array.exit();
         }
 
         UNITTEST_TEST(init_use_exit)
         {
-            virtual_items_t array;
-            array.init(sizeof(entity_t), 4096, 65536);
+            nvmem::pool_t array;
+            array.init(sizeof(entity_t), alignof(entity_t), 4096, 65536);
 
             // Should be able to write to that block of memory now
             // Let's do a memset
