@@ -436,14 +436,13 @@ namespace ncore
 
 #endif
 
-        static u32 s_pagesize = 0;
         bool       reserve(u64 address_range, protect_t attributes, void*& baseptr)
         {
             baseptr = alloc_protect(address_range, attributes);
             return baseptr != nullptr;
         }
 
-        u32 page_size() { return s_pagesize; }
+        u32 page_size() { return s_page_size; }
 
         bool release(void* baseptr, u64 address_range) { return dealloc(baseptr, address_range) == true; }
         bool commit(void* page_address, u64 size) { return commit_protect(page_address, size, ReadWrite) == true; }
