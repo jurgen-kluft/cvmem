@@ -27,22 +27,22 @@ UNITTEST_SUITE_BEGIN(virtual_pool)
 
         UNITTEST_TEST(init_exit)
         {
-            nvmem::pool_t array;
-            array.init(sizeof(entity_t), alignof(entity_t), 4096, 65536);
-            array.exit();
+            nvmem::pool_t<entity_t> array;
+            array.setup(4096, 65536);
+            array.teardown();
         }
 
         UNITTEST_TEST(init_use_exit)
         {
-            nvmem::pool_t array;
-            array.init(sizeof(entity_t), alignof(entity_t), 4096, 65536);
+            nvmem::pool_t<entity_t> array;
+            array.setup(4096, 65536);
 
             // Should be able to write to that block of memory now
             // Let's do a memset
-            nmem::memset(array.ptr_at<void>(0), 0xCDCDCDCD, sizeof(entity_t) * 4096);
-            entity_t* e = array.ptr_at<entity_t>(0);
+            nmem::memset(array.ptr_at(0), 0xCDCDCDCD, sizeof(entity_t) * 4096);
+            entity_t* e = array.ptr_at(0);
 
-            array.exit();
+            array.teardown();
         }
     }
 }

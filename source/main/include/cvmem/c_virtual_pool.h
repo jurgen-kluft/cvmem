@@ -11,26 +11,25 @@ namespace ncore
 {
     namespace nvmem
     {
-        class pool_t final : public fsa_t, public dexer_t
+        template <typename T> class pool_t : public ncore::pool_t<T>
         {
             u8* m_baseptr;    // memory base pointer
-            u32   m_item_size;  // the size of an item in bytes
-            u32   m_item_count; // current number of items that are used
-            u32   m_item_cap;   // maximum number of items that can be used
-            u32   m_free_index; // index of the first free item
-            u32   m_free_head;  // index of the first free item in the free list
+            u32 m_item_size;  // the size of an item in bytes
+            u32 m_item_count; // current number of items that are used
+            u32 m_item_cap;   // maximum number of items that can be used
+            u32 m_free_index; // index of the first free item
+            u32 m_free_head;  // index of the first free item in the free list
 
         public:
             pool_t();
 
             // e.g: init(sizeof(entity_t), 32768, 16777216);
-            bool init(u32 item_size, u32 item_align, u32 initial_item_count, u32 maximum_item_count);
-            bool exit();
+            bool setup(u32 initial_item_count, u32 maximum_item_count);
+            bool teardown();
 
-            inline u32 get_capacity() const { return m_item_cap; }
-            inline u32 get_size() const { return m_item_count; }
+            inline u32 capacity() const { return m_item_cap; }
+            inline u32 size() const { return m_item_count; }
 
-            template <typename T>
             inline T* ptr_at(u32 index) { return (T*)(m_baseptr + index * m_item_size); }
 
         protected:
@@ -43,5 +42,7 @@ namespace ncore
         };
     } // namespace nvmem
 }; // namespace ncore
+
+#include "cvmem/private/c_virtual_pool_inline.h"
 
 #endif /// __C_VMEM_VIRTUAL_ARRAY_H__
