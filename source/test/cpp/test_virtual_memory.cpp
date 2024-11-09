@@ -24,7 +24,7 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
             u64   address_range = 4 * cGB;
             u32   pagesize;
             void* baseptr;
-            CHECK_TRUE(nvmem::reserve(address_range, nvmem::ReadWrite, baseptr));
+            CHECK_TRUE(nvmem::reserve(address_range, nvmem::nprotect::ReadWrite, baseptr));
             CHECK_TRUE(nvmem::release(baseptr, address_range));
         }
 
@@ -35,7 +35,7 @@ UNITTEST_SUITE_BEGIN(virtual_memory)
             u64   address_range = 4 * cGB;
             u32   pagesize;
             void* baseptr;
-            CHECK_TRUE(nvmem::reserve(address_range, nvmem::ReadWrite, baseptr));
+            CHECK_TRUE(nvmem::reserve(address_range, nvmem::nprotect::ReadWrite, baseptr));
             CHECK_TRUE(nvmem::commit(baseptr, pagesize * 4));
 
             // Should be able to write to that block of memory now

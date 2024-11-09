@@ -1,3 +1,4 @@
+#include "ccore/config/descr/c_build.h"
 #include "cbase/c_base.h"
 #include "cbase/c_allocator.h"
 #include "cbase/c_console.h"
@@ -17,11 +18,7 @@ namespace ncore
 
         virtual bool handle_assert(const char* fileName, s32 lineNumber, const char* exprString, const char* messageString)
         {
-            if (messageString == nullptr)
-                UnitTest::ReportAssert(exprString, fileName, lineNumber);
-            else
-                UnitTest::ReportAssert(exprString, fileName, lineNumber, messageString);
-
+            UnitTest::ReportAssert(exprString, fileName, lineNumber, messageString);
             NumberOfAsserts++;
             return false;
         }

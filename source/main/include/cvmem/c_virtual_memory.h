@@ -10,15 +10,19 @@ namespace ncore
     namespace nvmem
     {
         typedef u64 size_t;
-        typedef s8 protect_t;
 
-        const protect_t Invalid = 0;
-        const protect_t NoAccess = 1;         // The page memory cannot be accessed at all.
-        const protect_t Read = 2;             // You can only read from the page memory .
-        const protect_t ReadWrite = 3;        // You can read and write to the page memory. This is the most common option.
-        const protect_t Execute = 4;          // You can only execute the page memory .
-        const protect_t ExecuteRead = 5;      // You can execute the page memory and read from it.
-        const protect_t ExecuteReadWrite = 6; // You can execute the page memory and read/write to it.
+        namespace nprotect
+        {
+            typedef s8 value_t;
+
+            const value_t Invalid          = 0;
+            const value_t NoAccess         = 1; // The page memory cannot be accessed at all.
+            const value_t Read             = 2; // You can only read from the page memory .
+            const value_t ReadWrite        = 3; // You can read and write to the page memory. This is the most common option.
+            const value_t Execute          = 4; // You can only execute the page memory .
+            const value_t ExecuteRead      = 5; // You can execute the page memory and read from it.
+            const value_t ExecuteReadWrite = 6; // You can execute the page memory and read/write to it.
+        } // namespace nprotect
 
         // Call once at the start of your program.
         // This exists only to cache result of `query_page_size` so you can use faster `get_page_size`,
@@ -28,7 +32,7 @@ namespace ncore
 
         u32 page_size();
 
-        bool reserve(u64 address_range, protect_t attributes, void*& baseptr);
+        bool reserve(u64 address_range, nprotect::value_t attributes, void*& baseptr);
         bool release(void* baseptr, u64 address_range);
 
         bool commit(void* address, u64 size);
@@ -54,7 +58,7 @@ namespace ncore
 
         // Reserve (allocate but don't commit) a block of static address-space of size `num_bytes`
         // @returns 0 on error, start address of the allocated memory block on success.
-        void* alloc_protect(size_t num_bytes, protect_t protect);
+        void* alloc_protect(size_t num_bytes, nprotect::value_t protect);
 
         // Dealloc (release, free) a block of static mem;
         // @param alloc_ptr: a pointer to the start of the memory block. Must be the result of `alloc`.
@@ -66,7 +70,7 @@ namespace ncore
         // memory.
         // Decommit with `decommit`.
         // @param ptr: pointer to the pointer returned by `alloc` or shifted by [0...num_bytes].
-        bool commit_protect(void* ptr, size_t num_bytes, protect_t protect);
+        bool commit_protect(void* ptr, size_t num_bytes, nprotect::value_t protect);
 
         // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
         // memory. The page protection mode will be changed to ReadWrite. Use `commit_protect` to specify a different mode.
@@ -87,7 +91,7 @@ namespace ncore
         bool partially_commit_region(void* ptr, size_t num_bytes, size_t prev_commited, size_t commited);
 
         // Sets protection mode for the region of pages. All of the pages must be commited.
-        bool protect(void* ptr, size_t num_bytes, protect_t protect);
+        bool protect(void* ptr, size_t num_bytes, nprotect::value_t protect);
 
         // @returns cached value from `query_page_size`. Returns 0 if you don't call `init`.
         u32 get_page_size(void);
@@ -119,20 +123,20 @@ namespace ncore
         bool unlock(void* ptr, size_t num_bytes);
 
         // Returns a static string for the protection mode.
-        // e.g. protect_t::ReadWrite will return "ReadWrite".
+        // e.g. nprotect::value_t::ReadWrite will return "ReadWrite".
         // Never fails - unknown values return "<Unknown>", never null pointer.
-        const char* get_protect_name(protect_t protect);
+        const char* get_protect_name(nprotect::value_t protect);
 
         // Pointer arithmetic.
         inline ptr_t align_forward(const ptr_t address, const u32 align) { return (address + (ptr_t)(align - 1)) & ~(ptr_t)(align - 1); }
         inline ptr_t align_backward(const ptr_t address, const u32 align) { return address & ~(ptr_t)(align - 1); }
         inline bool  is_aligned(const ptr_t address, const u32 align) { return (address & (ptr_t)(align - 1)) == 0 ? true : false; }
 
-        inline void* alloc(size_t num_bytes) { return alloc_protect(num_bytes, ReadWrite); }
+        inline void* alloc(size_t num_bytes) { return alloc_protect(num_bytes, nprotect::ReadWrite); }
         inline void* alloc_and_commit(const size_t num_bytes)
         {
             void* ptr = alloc(num_bytes);
-            commit_protect(ptr, num_bytes, ReadWrite);
+            commit_protect(ptr, num_bytes, nprotect::ReadWrite);
             return ptr;
         }
 

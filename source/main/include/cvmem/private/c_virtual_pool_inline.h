@@ -23,7 +23,7 @@ namespace ncore
 
             const u64 maximum_address_range = maximum_item_count * item_size;
             void*     baseptr;
-            if (!nvmem::reserve(maximum_address_range, nvmem::ReadWrite, baseptr))
+            if (!nvmem::reserve(maximum_address_range, nvmem::nprotect::ReadWrite, baseptr))
                 return false;
 
             const u32 page_size = nvmem::get_page_size();

@@ -105,17 +105,17 @@ namespace ncore
         u32 get_page_size(void) { return s_page_size; }
         u32 get_allocation_granularity(void) { return s_allocation_granularity; }
 
-        const char* get_protect_name(const protect_t protect)
+        const char* get_protect_name(const nprotect::value_t protect)
         {
             switch (protect)
             {
-                case Invalid: return "INVALID";
-                case NoAccess: return "NoAccess";
-                case Read: return "Read";
-                case ReadWrite: return "ReadWrite";
-                case Execute: return "Execute";
-                case ExecuteRead: return "ExecuteRead";
-                case ExecuteReadWrite: return "ExecuteReadWrite";
+                case nprotect::Invalid: return "INVALID";
+                case nprotect::NoAccess: return "NoAccess";
+                case nprotect::Read: return "Read";
+                case nprotect::ReadWrite: return "ReadWrite";
+                case nprotect::Execute: return "Execute";
+                case nprotect::ExecuteRead: return "ExecuteRead";
+                case nprotect::ExecuteReadWrite: return "ExecuteReadWrite";
             }
             return "<Unknown>";
         }
@@ -125,7 +125,7 @@ namespace ncore
 //
 #if defined(VMEM_PLATFORM_WIN32)
         static const DWORD s_protect_array[] = {0xffffffff, PAGE_NOACCESS, PAGE_READONLY, PAGE_READWRITE, PAGE_EXECUTE, PAGE_EXECUTE_READ, PAGE_EXECUTE_READWRITE};
-        static DWORD       _win32_protect(const protect_t protect)
+        static DWORD       _win32_protect(const nprotect::value_t protect)
         {
             DWORD const protect_win = s_protect_array[protect];
             if (protect_win == 0xffffffff)
@@ -136,7 +136,7 @@ namespace ncore
             return protect_win;
         }
 
-        static protect_t _protect_from_win32(const DWORD protect)
+        static nprotect::value_t _protect_from_win32(const DWORD protect)
         {
             switch (protect)
             {
@@ -151,7 +151,7 @@ namespace ncore
             return Invalid;
         }
 
-        void* alloc_protect(const size_t num_bytes, const protect_t protect)
+        void* alloc_protect(const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(num_bytes == 0, ErrorCannotAllocateMemoryBlockWithSize0Bytes))
                 return nullptr;
@@ -181,7 +181,7 @@ namespace ncore
             return result ? true : false;
         }
 
-        bool commit_protect(void* ptr, const size_t num_bytes, const protect_t protect)
+        bool commit_protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -207,7 +207,7 @@ namespace ncore
             return true;
         }
 
-        bool protect(void* ptr, const size_t num_bytes, const protect_t protect)
+        bool protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -281,7 +281,7 @@ namespace ncore
 #if defined(VMEM_PLATFORM_MAC)
         static const s32 s_protect_array[] = {-1, PROT_NONE, PROT_READ, PROT_READ | PROT_WRITE, PROT_EXEC, PROT_EXEC | PROT_READ, PROT_EXEC | PROT_READ | PROT_WRITE};
 
-        static s32 _mac_protect(const protect_t protect)
+        static s32 _mac_protect(const nprotect::value_t protect)
         {
             s32 const protect_mac = s_protect_array[protect];
             if (protect_mac == -1)
@@ -292,22 +292,22 @@ namespace ncore
             return protect_mac;
         }
 
-        static protect_t _protect_from_mac(const s32 protect)
+        static nprotect::value_t _protect_from_mac(const s32 protect)
         {
             switch (protect)
             {
-                case PROT_NONE: return NoAccess;
-                case PROT_READ: return Read;
-                case PROT_READ | PROT_WRITE: return ReadWrite;
-                case PROT_EXEC: return Execute;
-                case PROT_EXEC | PROT_READ: return ExecuteRead;
-                case PROT_EXEC | PROT_READ | PROT_WRITE: return ExecuteReadWrite;
+                case PROT_NONE: return nprotect::NoAccess;
+                case PROT_READ: return nprotect::Read;
+                case PROT_READ | PROT_WRITE: return nprotect::ReadWrite;
+                case PROT_EXEC: return nprotect::Execute;
+                case PROT_EXEC | PROT_READ: return nprotect::ExecuteRead;
+                case PROT_EXEC | PROT_READ | PROT_WRITE: return nprotect::ExecuteReadWrite;
             }
             check(false, ErrorInvalidProtectMode);
-            return Invalid;
+            return nprotect::Invalid;
         }
 
-        void* alloc_protect(const size_t num_bytes, const protect_t protect)
+        void* alloc_protect(const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(num_bytes == 0, ErrorCannotAllocateMemoryBlockWithSize0Bytes))
                 return nullptr;
@@ -337,7 +337,7 @@ namespace ncore
             return true;
         }
 
-        bool commit_protect(void* ptr, const size_t num_bytes, const protect_t protect)
+        bool commit_protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -369,7 +369,7 @@ namespace ncore
             return true;
         }
 
-        bool protect(void* ptr, const size_t num_bytes, const protect_t protect)
+        bool protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -436,7 +436,7 @@ namespace ncore
 
 #endif
 
-        bool       reserve(u64 address_range, protect_t attributes, void*& baseptr)
+        bool       reserve(u64 address_range, nprotect::value_t attributes, void*& baseptr)
         {
             baseptr = alloc_protect(address_range, attributes);
             return baseptr != nullptr;
@@ -445,7 +445,7 @@ namespace ncore
         u32 page_size() { return s_page_size; }
 
         bool release(void* baseptr, u64 address_range) { return dealloc(baseptr, address_range) == true; }
-        bool commit(void* page_address, u64 size) { return commit_protect(page_address, size, ReadWrite) == true; }
+        bool commit(void* page_address, u64 size) { return commit_protect(page_address, size, nprotect::ReadWrite) == true; }
 
         bool initialize()
         {
