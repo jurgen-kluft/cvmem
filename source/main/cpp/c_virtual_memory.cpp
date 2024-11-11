@@ -140,15 +140,15 @@ namespace ncore
         {
             switch (protect)
             {
-                case PAGE_NOACCESS: return NoAccess;
-                case PAGE_READONLY: return Read;
-                case PAGE_READWRITE: return ReadWrite;
-                case PAGE_EXECUTE: return Execute;
-                case PAGE_EXECUTE_READ: return ExecuteRead;
-                case PAGE_EXECUTE_READWRITE: return ExecuteReadWrite;
+                case PAGE_NOACCESS: return nprotect::NoAccess;
+                case PAGE_READONLY: return nprotect::Read;
+                case PAGE_READWRITE: return nprotect::ReadWrite;
+                case PAGE_EXECUTE: return nprotect::Execute;
+                case PAGE_EXECUTE_READ: return nprotect::ExecuteRead;
+                case PAGE_EXECUTE_READWRITE: return nprotect::ExecuteReadWrite;
             }
             ErrorInvalidProtectMode;
-            return Invalid;
+            return nprotect::Invalid;
         }
 
         void* alloc_protect(const size_t num_bytes, const nprotect::value_t protect)
