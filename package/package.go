@@ -3,36 +3,42 @@ package cvmem
 import (
 	cbase "github.com/jurgen-kluft/cbase/package"
 	denv "github.com/jurgen-kluft/ccode/denv"
-	ccore "github.com/jurgen-kluft/ccore/package"
 	cunittest "github.com/jurgen-kluft/cunittest/package"
 )
 
-// GetPackage returns the package object of 'cvmem'
+const (
+	repo_path = "github.com\\jurgen-kluft"
+	repo_name = "cvmem"
+)
+
 func GetPackage() *denv.Package {
-	// Dependencies
+	name := repo_name
+
+	// dependencies
 	cunittestpkg := cunittest.GetPackage()
-	ccorepkg := ccore.GetPackage()
 	cbasepkg := cbase.GetPackage()
 
-	// The main (cvmem) package
-	mainpkg := denv.NewPackage("cvmem")
+	// main package
+	mainpkg := denv.NewPackage(repo_path, repo_name)
 	mainpkg.AddPackage(cunittestpkg)
-	mainpkg.AddPackage(ccorepkg)
 	mainpkg.AddPackage(cbasepkg)
 
-	// 'cvmem' library
-	mainlib := denv.SetupCppLibProject("cvmem", "github.com\\jurgen-kluft\\cvmem")
-	mainlib.AddDependencies(ccorepkg.GetMainLib()...)
+	// main library
+	mainlib := denv.SetupCppLibProject(mainpkg, name)
 	mainlib.AddDependencies(cbasepkg.GetMainLib()...)
 
-	// 'cvmem' unittest project
-	maintest := denv.SetupDefaultCppTestProject("cvmem_test", "github.com\\jurgen-kluft\\cvmem")
+	// test library
+	testlib := denv.SetupCppTestLibProject(mainpkg, name)
+	testlib.AddDependencies(cbasepkg.GetTestLib()...)
+	testlib.AddDependencies(cunittestpkg.GetTestLib()...)
+
+	// unittest project
+	maintest := denv.SetupCppTestProject(mainpkg, name)
 	maintest.AddDependencies(cunittestpkg.GetMainLib()...)
-	maintest.AddDependencies(cbasepkg.GetMainLib()...)
-	maintest.AddDependencies(ccorepkg.GetMainLib()...)
-	maintest.Dependencies = append(maintest.Dependencies, mainlib)
+	maintest.AddDependency(testlib)
 
 	mainpkg.AddMainLib(mainlib)
+	mainpkg.AddTestLib(testlib)
 	mainpkg.AddUnittest(maintest)
 	return mainpkg
 }
