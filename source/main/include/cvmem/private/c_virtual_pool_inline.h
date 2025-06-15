@@ -5,7 +5,7 @@ namespace ncore
         template <typename T>
         pool_t<T>::pool_t()
             : m_baseptr(nullptr)
-            , m_item_size(0)
+            , m_item_sizeof(0)
             , m_item_count(0)
             , m_item_cap(0)
             , m_free_index(0)
@@ -19,9 +19,9 @@ namespace ncore
         {
             m_baseptr            = nullptr;
             u32 const item_align = alignof(T);
-            u32 const item_size  = (item_size + (item_align - 1)) & ~(item_align - 1);
+            u32 const item_size  = (sizeof(T) + (item_align - 1)) & ~(item_align - 1);
 
-            const u64 maximum_address_range = maximum_item_count * item_size;
+            const u64 maximum_address_range = maximum_item_count * sizeof(T);
             void*     baseptr;
             if (!nvmem::reserve(maximum_address_range, nvmem::nprotect::ReadWrite, baseptr))
                 return false;
@@ -29,12 +29,12 @@ namespace ncore
             const u32 page_size = nvmem::get_page_size();
 
             m_baseptr          = (u8*)baseptr;
-            m_item_size        = item_size;
+            m_item_sizeof      = sizeof(T);
             m_item_cap         = 0;
             m_item_count       = initial_item_count;
-            u32 const page_max = (m_item_size * maximum_item_count) / page_size;
+            u32 const page_max = (m_item_sizeof * maximum_item_count) / page_size;
 
-            u32 page_com = s_number_of_pages(m_item_size, initial_item_count, page_size);
+            u32 page_com = s_number_of_pages(m_item_sizeof, initial_item_count, page_size);
             if (page_com > page_max)
             {
                 page_com = page_max;
@@ -45,7 +45,7 @@ namespace ncore
                 if (!nvmem::commit(m_baseptr, (u64)page_size * page_com))
                     return false;
 
-                m_item_cap = (page_com * nvmem::get_page_size()) / m_item_size;
+                m_item_cap = (page_com * nvmem::get_page_size()) / m_item_sizeof;
             }
 
             return true;
@@ -54,13 +54,13 @@ namespace ncore
         template <typename T> bool pool_t<T>::teardown()
         {
             const u32 page_size = nvmem::get_page_size();
-            u32 const page_max  = ((m_item_size * m_item_cap) + page_size - 1) / page_size;
+            u32 const page_max  = ((m_item_sizeof * m_item_cap) + page_size - 1) / page_size;
             if (!nvmem::release(m_baseptr, page_max * page_size))
                 return false;
             return true;
         }
 
-        template <typename T> u32 pool_t<T>::v_allocsize() const { return m_item_size; }
+        template <typename T> u32 pool_t<T>::v_allocsize() const { return m_item_sizeof; }
 
         template <typename T> void* pool_t<T>::v_allocate()
         {
@@ -92,7 +92,7 @@ namespace ncore
             m_item_count--;
         }
 
-        template <typename T> void* pool_t<T>::v_idx2ptr(u32 index) { return (void*)((u8*)m_baseptr + index * m_item_size); }
-        template <typename T> u32   pool_t<T>::v_ptr2idx(void const* ptr) const { return (u32)(((u8*)ptr - (u8*)m_baseptr) / m_item_size); }
+        template <typename T> void* pool_t<T>::v_idx2ptr(u32 index) { return (void*)((u8*)m_baseptr + index * m_item_sizeof); }
+        template <typename T> u32   pool_t<T>::v_ptr2idx(void const* ptr) const { return (u32)(((u8*)ptr - (u8*)m_baseptr) / m_item_sizeof); }
     } // namespace nvmem
 } // namespace ncore

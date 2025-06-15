@@ -151,7 +151,7 @@ namespace ncore
             return nprotect::Invalid;
         }
 
-        void* alloc_protect(const size_t num_bytes, const nprotect::value_t protect)
+        void* alloc_protect(const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(num_bytes == 0, ErrorCannotAllocateMemoryBlockWithSize0Bytes))
                 return nullptr;
@@ -168,7 +168,7 @@ namespace ncore
             return nullptr;
         }
 
-        bool dealloc(void* ptr, const size_t num_allocated_bytes)
+        bool dealloc(void* ptr, const int_t num_allocated_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -181,7 +181,7 @@ namespace ncore
             return result ? true : false;
         }
 
-        bool commit_protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
+        bool commit_protect(void* ptr, const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -194,7 +194,7 @@ namespace ncore
             return true;
         }
 
-        bool decommit(void* ptr, const size_t num_bytes)
+        bool decommit(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -207,7 +207,7 @@ namespace ncore
             return true;
         }
 
-        bool protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
+        bool protect(void* ptr, const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -247,7 +247,7 @@ namespace ncore
             return usage_status;
         }
 
-        bool lock(void* ptr, const size_t num_bytes)
+        bool lock(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -260,7 +260,7 @@ namespace ncore
             return true;
         }
 
-        bool unlock(void* ptr, const size_t num_bytes)
+        bool unlock(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -307,7 +307,7 @@ namespace ncore
             return nprotect::Invalid;
         }
 
-        void* alloc_protect(const size_t num_bytes, const nprotect::value_t protect)
+        void* alloc_protect(const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(num_bytes == 0, ErrorCannotAllocateMemoryBlockWithSize0Bytes))
                 return nullptr;
@@ -324,7 +324,7 @@ namespace ncore
             return 0;
         }
 
-        bool dealloc(void* ptr, const size_t num_allocated_bytes)
+        bool dealloc(void* ptr, const int_t num_allocated_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -337,7 +337,7 @@ namespace ncore
             return true;
         }
 
-        bool commit_protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
+        bool commit_protect(void* ptr, const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -356,7 +356,7 @@ namespace ncore
             return false;
         }
 
-        bool decommit(void* ptr, const size_t num_bytes)
+        bool decommit(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -369,7 +369,7 @@ namespace ncore
             return true;
         }
 
-        bool protect(void* ptr, const size_t num_bytes, const nprotect::value_t protect)
+        bool protect(void* ptr, const int_t num_bytes, const nprotect::value_t protect)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -388,8 +388,8 @@ namespace ncore
             return false;
         }
 
-        u32 query_page_size(void) { return (size_t)vm_page_size; }
-        u32 query_allocation_granularity(void) { return (size_t)vm_page_size; }
+        u32 query_page_size(void) { return (int_t)vm_page_size; }
+        u32 query_allocation_granularity(void) { return (int_t)vm_page_size; }
 
         usage_t query_usage_status(void)
         {
@@ -401,14 +401,14 @@ namespace ncore
             vm_statistics64_data_t vm_stat;
             if (host_statistics64(mach_host_self(), HOST_VM_INFO, (host_info_t)&vm_stat, &count) == KERN_SUCCESS)
             {
-                usage_status.total_physical_bytes = (size_t)vm_stat.wire_count + (size_t)vm_stat.active_count + (size_t)vm_stat.inactive_count + (size_t)vm_stat.free_count;
-                usage_status.avail_physical_bytes = (size_t)vm_stat.free_count;
+                usage_status.total_physical_bytes = (int_t)vm_stat.wire_count + (int_t)vm_stat.active_count + (int_t)vm_stat.inactive_count + (int_t)vm_stat.free_count;
+                usage_status.avail_physical_bytes = (int_t)vm_stat.free_count;
             }
 
             return usage_status;
         }
 
-        bool lock(void* ptr, const size_t num_bytes)
+        bool lock(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;
@@ -421,7 +421,7 @@ namespace ncore
             return true;
         }
 
-        bool unlock(void* ptr, const size_t num_bytes)
+        bool unlock(void* ptr, const int_t num_bytes)
         {
             if (!check(ptr == 0, ErrorPtrCannotBeNull))
                 return false;

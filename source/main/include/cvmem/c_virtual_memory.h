@@ -9,7 +9,7 @@ namespace ncore
 {
     namespace nvmem
     {
-        typedef u64 size_t;
+        typedef u64 int_t;
 
         namespace nprotect
         {
@@ -41,8 +41,8 @@ namespace ncore
         // Global memory status.
         struct usage_t
         {
-            size_t total_physical_bytes;
-            size_t avail_physical_bytes;
+            int_t total_physical_bytes;
+            int_t avail_physical_bytes;
         };
 
         // Reserves (allocates but doesn't commit) a block of static address-space of size `num_bytes`, in ReadWrite protec;
@@ -51,47 +51,47 @@ namespace ncore
         // `get_allocation_granularity`) for size of allocations.
         // @param num_bytes: total size of the memory block.
         // @returns 0 on error, start address of the allocated memory block on success.
-        void* alloc(size_t num_bytes);
+        void* alloc(int_t num_bytes);
 
         // Allocates memory and commits all of it.
-        void* alloc_and_commit(const size_t num_bytes);
+        void* alloc_and_commit(const int_t num_bytes);
 
         // Reserve (allocate but don't commit) a block of static address-space of size `num_bytes`
         // @returns 0 on error, start address of the allocated memory block on success.
-        void* alloc_protect(size_t num_bytes, nprotect::value_t protect);
+        void* alloc_protect(int_t num_bytes, nprotect::value_t protect);
 
         // Dealloc (release, free) a block of static mem;
         // @param alloc_ptr: a pointer to the start of the memory block. Must be the result of `alloc`.
         // @param num_allocated_bytes: *must* be the value returned by `alloc`.
         //  It isn't used on windows, but it's required on unix platforms.
-        bool dealloc(void* alloc_ptr, size_t num_allocated_bytes);
+        bool dealloc(void* alloc_ptr, int_t num_allocated_bytes);
 
         // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
         // memory.
         // Decommit with `decommit`.
         // @param ptr: pointer to the pointer returned by `alloc` or shifted by [0...num_bytes].
-        bool commit_protect(void* ptr, size_t num_bytes, nprotect::value_t protect);
+        bool commit_protect(void* ptr, int_t num_bytes, nprotect::value_t protect);
 
         // Commit memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be mapped to physical
         // memory. The page protection mode will be changed to ReadWrite. Use `commit_protect` to specify a different mode.
         // Decommit with `decommit`.
         // @param ptr: pointer to the pointer returned by `alloc` or shifted by N.
         // @param num_bytes: number of bytes to commit.
-        bool commit(void* ptr, const size_t num_bytes);
+        bool commit(void* ptr, const int_t num_bytes);
 
         // Decommits the memory pages which contain one or more bytes in [ptr...ptr+num_bytes]. The pages will be unmapped from
         // physical memory.
         // @param ptr: pointer to the pointer returned by `alloc` or shifted by [0...num_bytes].
         // @param num_bytes: number of bytes to decommit.
-        bool decommit(void* ptr, size_t num_bytes);
+        bool decommit(void* ptr, int_t num_bytes);
 
         // Commit a specific number of bytes from the region. This can be used for a custom arena allocator.
         // If `commited < prev_commited`, this will shrink the usable range.
         // If `commited > prev_commited`, this will expand the usable range.
-        bool partially_commit_region(void* ptr, size_t num_bytes, size_t prev_commited, size_t commited);
+        bool partially_commit_region(void* ptr, int_t num_bytes, int_t prev_commited, int_t commited);
 
         // Sets protection mode for the region of pages. All of the pages must be commited.
-        bool protect(void* ptr, size_t num_bytes, nprotect::value_t protect);
+        bool protect(void* ptr, int_t num_bytes, nprotect::value_t protect);
 
         // @returns cached value from `query_page_size`. Returns 0 if you don't call `init`.
         u32 get_page_size(void);
@@ -115,12 +115,12 @@ namespace ncore
         // access to the region will not incur a page fault.
         // All pages in the specified region must be commited.
         // You cannot lock pages with `VMemProtect_NoAccess`.
-        bool lock(void* ptr, size_t num_bytes);
+        bool lock(void* ptr, int_t num_bytes);
 
         // Unlocks a specified range of pages in the static address space of a process, enabling the system to swap the p;
         // out to the paging file if necessary.
         // If you try to unlock pages which aren't locked, this will fail.
-        bool unlock(void* ptr, size_t num_bytes);
+        bool unlock(void* ptr, int_t num_bytes);
 
         // Returns a static string for the protection mode.
         // e.g. nprotect::value_t::ReadWrite will return "ReadWrite".
@@ -132,8 +132,8 @@ namespace ncore
         inline ptr_t align_backward(const ptr_t address, const u32 align) { return address & ~(ptr_t)(align - 1); }
         inline bool  is_aligned(const ptr_t address, const u32 align) { return (address & (ptr_t)(align - 1)) == 0 ? true : false; }
 
-        inline void* alloc(size_t num_bytes) { return alloc_protect(num_bytes, nprotect::ReadWrite); }
-        inline void* alloc_and_commit(const size_t num_bytes)
+        inline void* alloc(int_t num_bytes) { return alloc_protect(num_bytes, nprotect::ReadWrite); }
+        inline void* alloc_and_commit(const int_t num_bytes)
         {
             void* ptr = alloc(num_bytes);
             commit_protect(ptr, num_bytes, nprotect::ReadWrite);
