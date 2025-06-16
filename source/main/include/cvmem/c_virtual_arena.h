@@ -13,10 +13,10 @@ namespace ncore
     {
         u8*   Mem;              // base address of the memory arena, aligned to page size.
         int_t Pos;              // current byte position in the arena, this is the next available position to allocate from.
-        s32   CapacityReserved; // (unit=pages) total size/capacity of the arena
-        s32   CapacityCommited; // (unit=pages) number of pages that are commited
-        s8    PageSizeShift;    // page size shift, used to compute page size as (1 << PageSizeShift).
-        s8    AlignmentShift;   // minimum alignment for allocations, must be a power of two.
+        s32   CapacityReserved; // (unit=pages) total capacity
+        s32   CapacityCommited; // (unit=pages) total commited
+        s8    PageSizeShift;    // page size shift, used to compute page size as (1 << PageSizeShift) (12-20).
+        s8    AlignmentShift;   // minimum alignment for allocations, must be a power of two (2-16).
         s8    Dummy[6];         // padding to make the struct a power of two size
     };
 
@@ -31,7 +31,7 @@ namespace ncore
     void ArenasTeardown();
 
     arena_t* ArenaAlloc(int_t reserved_size_in_bytes, int_t commit_size_in_bytes, s8 alignment_shift = ARENA_DEFAULT_ALIGNMENT_SHIFT, s8 page_size_shift = ARENA_DEFAULT_PAGESIZE_SHIFT);
-    bool     ArenaRelease(arena_t* arena);
+    void     ArenaRelease(arena_t* arena);
 
     // Set the name of the arena, this is used for debugging and logging.
     // Note: These name strings need to have a lifetime longer than the arena itself.

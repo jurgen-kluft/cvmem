@@ -50,49 +50,57 @@ namespace ncore
         static bool check(bool cond, s32 error) { return true; }
 #endif
 
-        static const s32 ErrorNone                                    = 0;
-        static const s32 ErrorAlignmentCannotBeZero                   = 1;
-        static const s32 ErrorAlignmentHasToBePowerOf2                = 2;
-        static const s32 ErrorCannotAllocateMemoryBlockWithSize0Bytes = 3;
-        static const s32 ErrorCannotDeallocAMemoryBlockOfSize0        = 4;
-        static const s32 ErrorFailedToFormatError                     = 5;
-        static const s32 ErrorInvalidProtectMode                      = 6;
-        static const s32 ErrorOutBufferPtrCannotBeNull                = 7;
-        static const s32 ErrorOutBufferSizeCannotBe0                  = 8;
-        static const s32 ErrorPtrCannotBeNull                         = 9;
-        static const s32 ErrorSizeCannotBe0                           = 10;
-        static const s32 ErrorVirtualAllocFailed                      = 11;
-        static const s32 ErrorVirtualFreeFailed                       = 12;
-        static const s32 ErrorVirtualProtectFailed                    = 13;
-        static const s32 ErrorVirtualAllocReturnedNull                = 14;
-        static const s32 ErrorVirtualLockFailed                       = 15;
-        static const s32 ErrorVirtualUnlockFailed                     = 16;
+        enum eVmemMemoryError
+        {
+            ErrorNone                                    = 0,
+            ErrorAlignmentCannotBeZero                   = 1,
+            ErrorAlignmentHasToBePowerOf2                = 2,
+            ErrorCannotAllocateMemoryBlockWithSize0Bytes = 3,
+            ErrorCannotDeallocAMemoryBlockOfSize0        = 4,
+            ErrorFailedToFormatError                     = 5,
+            ErrorInvalidProtectMode                      = 6,
+            ErrorOutBufferPtrCannotBeNull                = 7,
+            ErrorOutBufferSizeCannotBe0                  = 8,
+            ErrorPtrCannotBeNull                         = 9,
+            ErrorSizeCannotBe0                           = 10,
+            ErrorVirtualAllocFailed                      = 11,
+            ErrorVirtualFreeFailed                       = 12,
+            ErrorVirtualProtectFailed                    = 13,
+            ErrorVirtualAllocReturnedNull                = 14,
+            ErrorVirtualLockFailed                       = 15,
+            ErrorVirtualUnlockFailed                     = 16,
+            ErrorMaxErrors                               = 17,
+        };
+
+        const char* sVmemMemoryErrorStrings[] = {
+            "No error",
+            "Alignment cannot be zero",
+            "Alignment has to be a power of 2",
+            "Cannot allocate memory block with size 0 bytes",
+            "Cannot deallocate a memory block of size 0",
+            "Failed to format error",
+            "Invalid protect mode",
+            "Out buffer ptr cannot be null",
+            "Out buffer size cannot be 0",
+            "Ptr cannot be null",
+            "Size cannot be 0",
+            "VirtualAlloc failed",
+            "VirtualFree failed",
+            "VirtualProtect failed",
+            "VirtualAlloc returned null",
+            "VirtualLock failed",
+            "VirtualUnlock failed",
+        };
 
 #if !defined(VMEM_NO_ERROR_MESSAGES)
 
         static const char* get_error_message(s32 error)
         {
-            switch (error)
+            if (error < 0 || error >= ErrorMaxErrors)
             {
-                case 0: return "No error";
-                case ErrorAlignmentCannotBeZero: return "Alignment cannot be zero";
-                case ErrorAlignmentHasToBePowerOf2: return "Alignment has to be a power of 2";
-                case ErrorCannotAllocateMemoryBlockWithSize0Bytes: return "Cannot allocate memory block with size 0 bytes";
-                case ErrorCannotDeallocAMemoryBlockOfSize0: return "Cannot deallocate a memory block of size 0";
-                case ErrorFailedToFormatError: return "Failed to format error";
-                case ErrorInvalidProtectMode: return "Invalid protect mode";
-                case ErrorOutBufferPtrCannotBeNull: return "Out buffer ptr cannot be null";
-                case ErrorOutBufferSizeCannotBe0: return "Out buffer size cannot be 0";
-                case ErrorPtrCannotBeNull: return "Ptr cannot be null";
-                case ErrorSizeCannotBe0: return "Size cannot be 0";
-                case ErrorVirtualAllocFailed: return "VirtualAlloc failed";
-                case ErrorVirtualFreeFailed: return "VirtualFree failed";
-                case ErrorVirtualProtectFailed: return "VirtualProtect failed";
-                case ErrorVirtualAllocReturnedNull: return "VirtualAlloc returned null";
-                case ErrorVirtualLockFailed: return "VirtualLock failed";
-                case ErrorVirtualUnlockFailed: return "VirtualUnlock failed";
+                return "Unknown error code";
             }
-            return "Unknown error";
+            return sVmemMemoryErrorStrings[error];
         }
 #else
         static const char* get_error_message(s32 _) { return "<Error messages disabled>"; }
@@ -105,19 +113,17 @@ namespace ncore
         u32 get_page_size(void) { return s_page_size; }
         u32 get_allocation_granularity(void) { return s_allocation_granularity; }
 
+        const char* sVmemProtectStrings[] = {
+            "Invalid", "NoAccess", "Read", "ReadWrite", "Execute", "ExecuteRead", "ExecuteReadWrite",
+        };
+
         const char* get_protect_name(const nprotect::value_t protect)
         {
-            switch (protect)
+            if (protect < nprotect::Invalid || protect > nprotect::ExecuteReadWrite)
             {
-                case nprotect::Invalid: return "INVALID";
-                case nprotect::NoAccess: return "NoAccess";
-                case nprotect::Read: return "Read";
-                case nprotect::ReadWrite: return "ReadWrite";
-                case nprotect::Execute: return "Execute";
-                case nprotect::ExecuteRead: return "ExecuteRead";
-                case nprotect::ExecuteReadWrite: return "ExecuteReadWrite";
+                return "Unknown protect mode";
             }
-            return "<Unknown>";
+            return sVmemProtectStrings[protect];
         }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -280,7 +286,6 @@ namespace ncore
 //
 #if defined(VMEM_PLATFORM_MAC)
         static const s32 s_protect_array[] = {-1, PROT_NONE, PROT_READ, PROT_READ | PROT_WRITE, PROT_EXEC, PROT_EXEC | PROT_READ, PROT_EXEC | PROT_READ | PROT_WRITE};
-
         static s32 _mac_protect(const nprotect::value_t protect)
         {
             s32 const protect_mac = s_protect_array[protect];
@@ -436,7 +441,7 @@ namespace ncore
 
 #endif
 
-        bool       reserve(u64 address_range, nprotect::value_t attributes, void*& baseptr)
+        bool reserve(u64 address_range, nprotect::value_t attributes, void*& baseptr)
         {
             baseptr = alloc_protect(address_range, attributes);
             return baseptr != nullptr;
@@ -449,10 +454,12 @@ namespace ncore
 
         bool initialize()
         {
-            // Note: this will be 2 syscalls on windows.
-            s_page_size              = query_page_size();
-            s_allocation_granularity = query_allocation_granularity();
-            return true;
+            if (s_page_size == 0)
+            {
+                s_page_size              = query_page_size();
+                s_allocation_granularity = query_allocation_granularity();
+            }
+            return s_page_size > 0;
         }
     } // namespace nvmem
 }; // namespace ncore
