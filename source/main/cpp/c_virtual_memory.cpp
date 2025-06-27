@@ -321,7 +321,7 @@ namespace ncore
             if (protect_mac)
             {
                 void* address = mmap(nullptr, num_bytes, protect_mac, MAP_PRIVATE | MAP_ANON, -1, 0);
-                if (!check(address == MAP_FAILED, ErrorFailedToFormatError))
+                if (!check(address == MAP_FAILED, ErrorVirtualAllocFailed))
                     return nullptr;
                 return address;
             }
@@ -337,7 +337,7 @@ namespace ncore
                 return false;
 
             const s32 result = munmap(ptr, num_allocated_bytes);
-            if (!check(result == -1, ErrorFailedToFormatError))
+            if (!check(result == -1, ErrorVirtualFreeFailed))
                 return false;
             return true;
         }
@@ -353,7 +353,7 @@ namespace ncore
             if (protect_mac)
             {
                 const s32 result = mprotect(ptr, num_bytes, protect_mac);
-                if (!check(result == -1, ErrorFailedToFormatError))
+                if (!check(result == -1, ErrorVirtualProtectFailed))
                     return false;
                 return true;
             }
@@ -369,7 +369,7 @@ namespace ncore
                 return false;
 
             const s32 result = mprotect(ptr, num_bytes, PROT_NONE);
-            if (!check(result == -1, ErrorFailedToFormatError))
+            if (!check(result == -1, ErrorVirtualProtectFailed))
                 return false;
             return true;
         }
@@ -385,7 +385,7 @@ namespace ncore
             if (protect_mac)
             {
                 const s32 result = mprotect(ptr, num_bytes, protect_mac);
-                if (!check(result == -1, ErrorFailedToFormatError))
+                if (!check(result == -1, ErrorVirtualProtectFailed))
                     return false;
                 return true;
             }
