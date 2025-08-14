@@ -1,6 +1,5 @@
 #include "ccore/c_allocator.h"
-#include "cbase/c_integer.h"
-#include "cbase/c_memory.h"
+#include "ccore/c_memory.h"
 
 #include "cunittest/cunittest.h"
 

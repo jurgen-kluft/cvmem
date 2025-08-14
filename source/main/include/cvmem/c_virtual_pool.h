@@ -5,13 +5,13 @@
 #    pragma once
 #endif
 
-#include "cbase/c_allocator.h"
+#include "ccore/c_allocator.h"
 
 namespace ncore
 {
     namespace nvmem
     {
-        template <typename T> class pool_t : public ncore::pool_t<T>
+        template <typename T> class pool_t
         {
             u8* m_baseptr;     // memory base pointer
             u32 m_item_sizeof; // the size of an item in bytes
