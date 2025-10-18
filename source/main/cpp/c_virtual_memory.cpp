@@ -286,7 +286,7 @@ namespace ncore
 //
 #if defined(VMEM_PLATFORM_MAC)
         static const s32 s_protect_array[] = {-1, PROT_NONE, PROT_READ, PROT_READ | PROT_WRITE, PROT_EXEC, PROT_EXEC | PROT_READ, PROT_EXEC | PROT_READ | PROT_WRITE};
-        static s32 _mac_protect(const nprotect::value_t protect)
+        static s32       _mac_protect(const nprotect::value_t protect)
         {
             s32 const protect_mac = s_protect_array[protect];
             if (protect_mac == -1)
@@ -398,7 +398,7 @@ namespace ncore
 
         usage_t query_usage_status(void)
         {
-            usage_t usage_status              = {0};
+            usage_t usage_status;
             usage_status.total_physical_bytes = 0;
             usage_status.avail_physical_bytes = 0;
 
